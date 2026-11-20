@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedRAG · 统一管理后台</title>
+<style>
+  :root{
+    --navy:#0d2444; --navy2:#12335e; --blue:#1e6fd9; --blue2:#0f4c9c;
+    --teal:#12a5a5; --bg:#f3f6fb; --card:#fff; --ink:#1a2b45; --muted:#6b7c96;
+    --line:#e3eaf4; --soft:#eef4fd; --red:#e0505a; --green:#1fa971; --amber:#e59a1f;
+    --shadow:0 6px 22px rgba(16,44,86,.08); --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  button,input,select{font-family:inherit}
+  a{color:var(--blue);text-decoration:none}
+
+  /* ---------- Login ---------- */
+  .login-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;
+    background:linear-gradient(150deg,var(--navy),var(--navy2) 55%,#0d5a6b)}
+  .login-card{width:380px;background:#fff;border-radius:18px;padding:38px 36px;box-shadow:0 24px 64px rgba(0,0,0,.32)}
+  .login-card .logo{width:52px;height:52px;border-radius:14px;background:linear-gradient(135deg,var(--teal),var(--blue));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:22px;color:#fff;margin-bottom:18px}
+  .login-card h1{font-size:22px;color:var(--navy)}
+  .login-card p{color:var(--muted);font-size:13px;margin:6px 0 22px}
+  .login-card label{display:block;font-size:12px;color:var(--muted);margin-bottom:6px}
+  .login-card input{width:100%;padding:11px 13px;border:1px solid var(--line);border-radius:9px;font-size:14px;outline:none}
+  .login-card input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,111,217,.12)}
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:6px;border:none;cursor:pointer;
+    padding:9px 16px;border-radius:9px;font-size:13px;font-weight:600;transition:.15s}
+  .btn.primary{background:linear-gradient(90deg,var(--blue),var(--teal));color:#fff;width:100%;padding:12px;margin-top:16px;font-size:15px}
+  .btn.primary:hover{filter:brightness(1.08)}
+  .btn.sm{padding:6px 12px;font-size:12px}
+  .btn.ghost{background:var(--soft);color:var(--blue2)}
+  .btn.ghost:hover{background:#dfeafb}
+  .btn.danger{background:#fdecee;color:var(--red)}
+  .btn.danger:hover{background:#fbdadd}
+  .btn:disabled{opacity:.55;cursor:not-allowed}
+  .err{color:var(--red);font-size:12px;margin-top:10px;min-height:18px}
+
+  /* ---------- Layout ---------- */
+  .app{display:flex;min-height:100vh;display:none}
+  .sidebar{width:238px;flex:0 0 238px;background:linear-gradient(170deg,var(--navy),var(--navy2));
+    color:#dbe7f7;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:11px;padding:22px 20px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .brand .logo{width:40px;height:40px;border-radius:11px;background:linear-gradient(135deg,var(--teal),var(--blue));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:18px;color:#fff}
+  .brand h1{font-size:16px;color:#fff;letter-spacing:.3px}
+  .brand p{font-size:10px;color:#8fa7c6;margin-top:1px}
+  .nav{padding:14px 10px;flex:1;overflow-y:auto}
+  .nav-label{font-size:10px;color:#66809f;padding:8px 12px;letter-spacing:1.5px;text-transform:uppercase}
+  .nav-item{display:flex;align-items:center;gap:11px;padding:11px 13px;border-radius:9px;cursor:pointer;
+    color:#b9cbe2;margin-bottom:3px;transition:.16s;border:1px solid transparent;font-size:13px}
+  .nav-item .ic{width:20px;text-align:center;font-size:15px}
+  .nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .nav-item.active{background:linear-gradient(90deg,rgba(30,111,217,.92),rgba(18,165,165,.72));color:#fff;border-color:rgba(255,255,255,.12)}
+  .side-foot{padding:14px 18px;font-size:10px;color:#6d86a6;border-top:1px solid rgba(255,255,255,.08)}
+  .side-foot b{color:#9fb6d2}
+
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{height:62px;background:#fff;border-bottom:1px solid var(--line);display:flex;align-items:center;
+    padding:0 28px;gap:14px;position:sticky;top:0;z-index:20}
+  .topbar .crumb{color:var(--muted);font-size:13px}
+  .topbar .crumb b{color:var(--ink)}
+  .topbar .spacer{flex:1}
+  .status-dot{width:8px;height:8px;border-radius:50%;background:var(--green);display:inline-block;margin-right:6px}
+  .topbar .user{font-size:12px;color:var(--muted)}
+  .content{padding:26px 28px;max-width:1200px;width:100%}
+  .page-head{margin-bottom:22px}
+  .page-head h2{font-size:21px;color:var(--navy)}
+  .page-head p{color:var(--muted);font-size:13px;margin-top:4px}
+
+  .grid{display:grid;gap:16px}
+  .grid.cols-2{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .grid.cols-3{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .grid.cols-4{grid-template-columns:repeat(4,minmax(0,1fr))}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:14px;color:var(--navy);margin-bottom:14px;display:flex;align-items:center;gap:8px}
+  .card h3 .tag{margin-left:auto;font-size:10px;font-weight:600;padding:2px 9px;border-radius:20px;background:var(--soft);color:var(--blue2)}
+
+  .stat{text-align:center;padding:6px 4px}
+  .stat .v{font-size:26px;font-weight:800;color:var(--navy)}
+  .stat .k{font-size:12px;color:var(--muted);margin-top:2px}
+  .stat .v.ok{color:var(--green)} .stat .v.warn{color:var(--amber)} .stat .v.bad{color:var(--red)}
+
+  .feat-card{cursor:pointer;transition:.16s}
+  .feat-card:hover{transform:translateY(-2px);box-shadow:0 12px 28px rgba(16,44,86,.13)}
+  .feat-card .ic{font-size:24px}
+  .feat-card .en{font-size:12px;color:var(--muted);margin-top:6px}
+  .feat-card .on{font-size:11px;color:var(--green);font-weight:600}
+  .feat-card .off{font-size:11px;color:var(--muted);font-weight:600}
+
+  table{width:100%;border-collapse:collapse;font-size:12.5px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line);vertical-align:top}
+  th{color:var(--muted);font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:.4px}
+  tr:last-child td{border-bottom:none}
+  .badge{font-size:10px;padding:2px 8px;border-radius:20px;font-weight:600}
+  .badge.active,.badge.on{background:#e6f7ef;color:var(--green)}
+  .badge.archived,.badge.invalid,.badge.off{background:#fdecee;color:var(--red)}
+  .badge.sensitive{background:#fff4e2;color:var(--amber)}
+
+  .cfg-field{display:grid;grid-template-columns:1fr 200px;gap:14px;align-items:center;padding:9px 0;border-bottom:1px solid var(--line)}
+  .cfg-field:last-child{border-bottom:none}
+  .cfg-field .name{font-size:13px;font-weight:600;color:var(--ink)}
+  .cfg-field .desc{font-size:11px;color:var(--muted)}
+  .cfg-field input,.cfg-field select{width:100%;padding:7px 10px;border:1px solid var(--line);border-radius:7px;font-size:13px;outline:none}
+  .cfg-field input:focus,.cfg-field select:focus{border-color:var(--blue)}
+  .cfg-field input:read-only{background:#f6f8fc;color:var(--muted)}
+  .cfg-actions{margin-top:16px;display:flex;gap:10px;align-items:center}
+  .saved{color:var(--green);font-size:12px}
+
+  .toolbar{display:flex;gap:10px;align-items:center;margin-bottom:14px;flex-wrap:wrap}
+  .toolbar input,.toolbar select{padding:8px 11px;border:1px solid var(--line);border-radius:8px;font-size:13px;outline:none}
+  .toolbar input:focus,.toolbar select:focus{border-color:var(--blue)}
+  .hint{font-size:12px;color:var(--muted);background:var(--soft);padding:9px 12px;border-radius:8px;margin-bottom:14px}
+  .toast{position:fixed;bottom:26px;right:26px;padding:13px 20px;border-radius:10px;color:#fff;font-size:13px;
+    box-shadow:0 12px 30px rgba(0,0,0,.25);z-index:100;opacity:0;transform:translateY(12px);transition:.25s;pointer-events:none}
+  .toast.show{opacity:1;transform:none}
+  .toast.err{background:var(--red)} .toast.ok{background:var(--green)}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid rgba(255,255,255,.4);border-top-color:#fff;border-radius:50%;animation:sp .7s linear infinite}
+  @keyframes sp{to{transform:rotate(360deg)}}
+  .empty{color:var(--muted);font-size:13px;padding:20px;text-align:center}
+  code{background:var(--soft);padding:1px 6px;border-radius:5px;font-size:12px;color:var(--blue2)}
+  .kv{font-size:12px;color:var(--muted)}
+  .kv b{color:var(--ink)}
+</style>
+</head>
+<body>
+
+<!-- ============ LOGIN ============ -->
+<div class="login-wrap" id="loginWrap">
+  <div class="login-card">
+    <div class="logo">M</div>
+    <h1>MedRAG 管理后台</h1>
+    <p>输入管理 API Key 登录 · 五个功能一站式管理</p>
+    <label>ADMIN_API_KEY</label>
+    <input type="password" id="keyInput" placeholder="请输入管理密钥" autocomplete="current-password">
+    <button class="btn primary" id="loginBtn">登 录</button>
+    <div class="err" id="loginErr"></div>
+  </div>
+</div>
+
+<!-- ============ APP ============ -->
+<div class="app" id="app">
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div><h1>MedRAG 管理台</h1><p>Unified Admin Console</p></div>
+    </div>
+    <nav class="nav" id="nav">
+      <div class="nav-label">总览</div>
+      <div class="nav-item active" data-page="overview"><span class="ic">◧</span>系统总览</div>
+      <div class="nav-label">五大功能</div>
+      <div class="nav-item" data-page="rag"><span class="ic">◈</span>基础 RAG / 临床问答</div>
+      <div class="nav-item" data-page="specialty"><span class="ic">✚</span>专项辅助</div>
+      <div class="nav-item" data-page="safety"><span class="ic">⛨</span>安全 / 合规</div>
+      <div class="nav-item" data-page="kb"><span class="ic">▤</span>知识库管理</div>
+      <div class="nav-item" data-page="ops"><span class="ic">⚙</span>后台运维</div>
+      <div class="nav-label">系统</div>
+      <div class="nav-item" data-page="actions"><span class="ic">≡</span>操作日志</div>
+    </nav>
+    <div class="side-foot">MedRAG <b>统一管理后端 v1.0</b><br>API: <b>/admin/*</b></div>
+  </aside>
+
+  <div class="main">
+    <header class="topbar">
+      <span class="crumb" id="crumb">管理台 / <b>系统总览</b></span>
+      <span class="spacer"></span>
+      <span class="user"><span class="status-dot" id="statusDot"></span><span id="keyMask">已登录</span></span>
+      <button class="btn ghost sm" id="logoutBtn">退出</button>
+    </header>
+    <main class="content" id="content"><div class="empty">加载中…</div></main>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+"use strict";
+/* ============================================================
+   MedRAG 统一管理后台 — 纯前端 SPA（无任何构建依赖）
+   所有数据通过同源 /admin/* API 获取，鉴权用 Bearer Token。
+   ============================================================ */
+const KEY_STORE = "medrag_admin_key";
+let API_KEY = sessionStorage.getItem(KEY_STORE) || "";
+let CURRENT = "overview";
+const FEATURES = {
+  rag:{label:"基础 RAG / 临床问答", en:"Feature 1 · RAG & Clinical QA", icon:"◈"},
+  specialty:{label:"专项辅助", en:"Feature 2 · Clinical Specialty", icon:"✚"},
+  safety:{label:"安全 / 合规 / 风控", en:"Feature 3 · Safety & Compliance", icon:"⛨"},
+  kb:{label:"知识库管理", en:"Feature 4 · Knowledge Base", icon:"▤"},
+  ops:{label:"后台运维与统计", en:"Feature 5 · Operations", icon:"⚙"},
+};
+const $ = id => document.getElementById(id);
+const esc = s => String(s == null ? "" : s).replace(/[&<>"']/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+
+/* ---------- 网络 ---------- */
+async function api(path, opts={}) {
+  const headers = Object.assign({}, opts.headers || {}, {"Authorization":"Bearer " + API_KEY});
+  if (opts.body !== undefined && !headers["Content-Type"]) headers["Content-Type"] = "application/json";
+  const res = await fetch("/admin" + path, {method:opts.method || "GET", headers, body:opts.body !== undefined ? JSON.stringify(opts.body) : undefined});
+  if (res.status === 401 || res.status === 403 || res.status === 503) {
+    let detail = "登录已失效或密钥无效";
+    try { detail = (await res.json()).detail || detail; } catch(e){}
+    logout(); toast(detail, "err"); throw new Error(detail);
+  }
+  let json;
+  try { json = await res.json(); } catch(e){ throw new Error("服务器响应异常 (" + res.status + ")"); }
+  if (!res.ok || !json.ok) { throw new Error(json.detail || "请求失败 (" + res.status + ")"); }
+  return json.data;
+}
+
+/* ---------- UI 工具 ---------- */
+let toastTimer;
+function toast(msg, type="ok") {
+  const t = $("toast");
+  t.textContent = msg; t.className = "toast show " + (type === "err" ? "err" : "ok");
+  clearTimeout(toastTimer); toastTimer = setTimeout(() => t.className = "toast", 2800);
+}
+function btnLoading(btn, on, text) {
+  if (on) { btn.dataset.t = btn.innerHTML; btn.disabled = true; btn.innerHTML = '<span class="spin"></span> ' + (text || "处理中"); }
+  else { btn.disabled = false; if (btn.dataset.t) btn.innerHTML = btn.dataset.t; }
+}
+function fmt(v) {
+  if (v === true) return "开启"; if (v === false) return "关闭";
+  if (v == null) return "—";
+  if (typeof v === "object") return JSON.stringify(v);
+  return String(v);
+}
+
+/* ---------- 登录 / 退出 ---------- */
+$("loginBtn").onclick = doLogin;
+$("keyInput").addEventListener("keydown", e => { if (e.key === "Enter") doLogin(); });
+async function doLogin() {
+  const key = $("keyInput").value.trim();
+  if (!key) { $("loginErr").textContent = "请输入管理密钥"; return; }
+  const btn = $("loginBtn"); btnLoading(btn, true, "验证中");
+  $("loginErr").textContent = "";
+  API_KEY = key;
+  try {
+    await api("/overview");
+    sessionStorage.setItem(KEY_STORE, key);
+    $("loginWrap").style.display = "none";
+    $("app").style.display = "flex";
+    $("keyMask").textContent = "密钥 ••••" + key.slice(-4);
+    render();
+  } catch(e) {
+    $("loginErr").textContent = e.message || "登录失败";
+    API_KEY = "";
+  } finally { btnLoading(btn, false); }
+}
+function logout() {
+  API_KEY = ""; sessionStorage.removeItem(KEY_STORE);
+  $("app").style.display = "none"; $("loginWrap").style.display = "flex";
+  $("keyInput").value = ""; $("loginErr").textContent = "";
+}
+$("logoutBtn").onclick = logout;
+
+/* ---------- 导航 ---------- */
+$("nav").addEventListener("click", e => {
+  const item = e.target.closest(".nav-item");
+  if (!item) return;
+  document.querySelectorAll(".nav-item").forEach(n => n.classList.remove("active"));
+  item.classList.add("active");
+  CURRENT = item.dataset.page;
+  const name = CURRENT === "overview" ? "系统总览" : CURRENT === "actions" ? "操作日志" : FEATURES[CURRENT].label;
+  $("crumb").innerHTML = "管理台 / <b>" + esc(name) + "</b>";
+  render();
+});
+
+/* ---------- 路由渲染 ---------- */
+async function render() {
+  const c = $("content");
+  c.innerHTML = '<div class="empty"><span class="spin" style="border-color:#1e6fd9;border-top-color:transparent"></span> 加载中…</div>';
+  try {
+    if (CURRENT === "overview") await renderOverview(c);
+    else if (CURRENT === "actions") await renderActions(c);
+    else if (CURRENT === "specialty") await renderSpecialty(c);
+    else if (CURRENT === "safety") await renderSafety(c);
+    else if (CURRENT === "kb") await renderKB(c);
+    else if (CURRENT === "ops") await renderOps(c);
+    else await renderFeature(c, CURRENT);
+    $("statusDot").style.background = "var(--green)";
+  } catch(e) { c.innerHTML = '<div class="card"><div class="empty" style="color:var(--red)">加载失败：' + esc(e.message) + "</div></div>"; }
+}
+
+/* ===== 总览 ===== */
+async function renderOverview(c) {
+  const d = await api("/overview");
+  const f = d.features;
+  const stats = [
+    ["索引状态", d.system.index_ready ? "就绪" : "未构建", d.system.index_ready ? "ok" : "warn"],
+    ["LLM", d.system.llm_model, ""],
+    ["Embedding", d.system.embedding_model, ""],
+    ["功能状态", Object.values(f).filter(x => x.enabled).length + "/5 启用", ""],
+  ];
+  const statHTML = stats.map(s => '<div class="stat"><div class="v ' + s[2] + '">' + esc(s[1]) + '</div><div class="k">' + esc(s[0]) + '</div></div>').join("");
+  const featHTML = d.features_catalog.map(x => {
+    const meta = FEATURES[x.id]; const st = f[x.id];
+    const on = st && st.enabled;
+    return '<div class="card feat-card" data-feature="' + x.id + '"><div class="ic">' + meta.icon + '</div>' +
+      '<h3 style="margin:8px 0 2px">' + esc(meta.label) + '</h3>' +
+      '<div class="en">' + esc(meta.en) + '</div>' +
+      '<div style="margin-top:10px" class="' + (on ? "on" : "off") + '">' + (on ? "● 已启用" : "○ 未启用") + "</div></div>";
+  }).join("");
+  c.innerHTML =
+    '<div class="page-head"><h2>系统总览</h2><p>MedRAG 统一管理后端 · ' + esc(d.app) + ' v' + esc(d.version) + ' · 服务器时间 ' + new Date(d.server_time*1000).toLocaleString() + '</p></div>' +
+    '<div class="card"><div class="grid cols-4">' + statHTML + '</div></div>' +
+    '<div style="height:16px"></div>' +
+    '<div class="page-head"><h2 style="font-size:16px">五大功能</h2><p>点击进入对应管理面板</p></div>' +
+    '<div class="grid cols-3" id="featGrid">' + featHTML + '</div>';
+  $("featGrid").addEventListener("click", e => {
+    const card = e.target.closest(".feat-card"); if (!card) return;
+    const id = card.dataset.feature;
+    const nav = document.querySelector('.nav-item[data-page="' + id + '"]'); if (nav) nav.click();
+  });
+}
+
+/* ===== 通用功能页（状态 + 统计 + 配置） ===== */
+async function renderFeature(c, feature) {
+  const meta = FEATURES[feature];
+  const [status, stats, cfg] = await Promise.all([
+    api("/features/" + feature), api("/features/" + feature + "/stats"), api("/features/" + feature + "/config")
+  ]);
+  const statusHTML = Object.entries(status).map(([k,v]) =>
+    '<div class="stat" style="text-align:left"><div class="k" style="text-transform:none;font-size:12px">' + esc(k) + '</div><div class="v" style="font-size:16px">' + esc(fmt(v)) + '</div></div>').join("");
+  const statsHTML = typeof stats === "object"
+    ? Object.entries(stats).map(([k,v]) =>
+        '<tr><td>' + esc(k) + '</td><td>' + esc(typeof v === "object" && !Array.isArray(v) ? "(见下)" : fmt(v)) + '</td></tr>').join("")
+    : "<tr><td colspan=2>" + esc(fmt(stats)) + "</td></tr>";
+  const cfgHTML = Object.entries(cfg.config).map(([name, item]) => {
+    let input;
+    if (item.type === "bool") input = '<select data-cfg="' + name + '"><option value="true"' + (item.value===true?" selected":"") + '>开启</option><option value="false"' + (item.value===false?" selected":"") + '>关闭</option></select>';
+    else if (item.sensitive) input = '<input type="password" data-cfg="' + name + '" value="' + esc(item.value) + '" placeholder="留空则不修改">';
+    else input = '<input data-cfg="' + name + '" value="' + esc(item.value) + '" type="' + (item.type==="int"||item.type==="float"?"number":"text") + '"' + (item.type!=="int"&&item.type!=="float"?"":" step=any") + '>';
+    return '<div class="cfg-field"><div><div class="name">' + esc(name) + (item.sensitive?' <span class="badge sensitive">敏感</span>':'') + '</div><div class="desc">' + esc(item.description) + ' · ' + esc(item.type) + '</div></div>' + input + '</div>';
+  }).join("");
+
+  c.innerHTML =
+    '<div class="page-head"><h2>' + esc(meta.label) + '</h2><p>' + esc(meta.en) + ' · 状态、统计与配置管理</p></div>' +
+    '<div class="card"><h3>运行状态 <span class="tag">' + esc(feature) + '</span></h3><div class="grid cols-4">' + statusHTML + '</div></div>' +
+    '<div style="height:16px"></div>' +
+    '<div class="grid cols-2"><div class="card"><h3>功能统计</h3><table><thead><tr><th>指标</th><th>值</th></tr></thead><tbody>' + statsHTML + '</tbody></table></div>' +
+    '<div class="card"><h3>快捷操作</h3>' + featureQuick(feature) + '</div></div>' +
+    '<div style="height:16px"></div>' +
+    '<div class="card"><h3>配置管理 <span class="tag">敏感值已掩码</span></h3>' +
+      '<div id="cfgFields">' + cfgHTML + '</div>' +
+      '<div class="cfg-actions"><button class="btn primary" id="saveCfg" style="width:auto;margin:0">保存配置</button><span class="saved" id="saveMsg"></span></div>' +
+    '</div>';
+
+  $("saveCfg").onclick = async () => {
+    const updates = {};
+    document.querySelectorAll("#cfgFields [data-cfg]").forEach(el => {
+      const name = el.dataset.cfg; const item = cfg.config[name];
+      let raw = el.value;
+      if (item.sensitive && !raw) return; // 敏感字段留空=不修改
+      if (item.type === "bool") raw = raw === "true";
+      else if (item.type === "int") raw = parseInt(raw, 10);
+      else if (item.type === "float") raw = parseFloat(raw);
+      if (isNaN(raw)) { toast(name + " 需要有效数字", "err"); return; }
+      updates[name] = raw;
+    });
+    if (!Object.keys(updates).length) { toast("没有需要保存的更改"); return; }
+    const btn = $("saveCfg"); btnLoading(btn, true, "保存中");
+    try { await api("/features/" + feature + "/config", {method:"POST", body:{updates}});
+      toast("配置已保存"); $("saveMsg").textContent = "✓ 已保存 " + Object.keys(updates).length + " 项"; renderFeature(c, feature); }
+    catch(e){ toast(e.message, "err"); }
+    finally { btnLoading(btn, false); }
+  };
+  bindQuick(feature, c);
+}
+
+function featureQuick(feature) {
+  if (feature === "rag") return '<p class="hint">重建向量索引后，新增/变更的文档才会进入检索范围。</p><button class="btn primary" id="qRebuild" style="width:auto">重建索引</button>';
+  return '<p class="hint">该功能的专项操作请查看左侧导航中的专属页面。</p>';
+}
+function bindQuick(feature, c) {
+  if (feature === "rag" && $("qRebuild")) $("qRebuild").onclick = async () => {
+    if (!confirm("确定重建向量索引？")) return;
+    const btn=$("qRebuild"); btnLoading(btn,true,"重建中");
+    try { const d=await api("/actions/rebuild-index",{method:"POST",body:{}}); toast("索引重建完成："+d.chunks+" chunks"); }
+    catch(e){toast(e.message,"err");} finally{btnLoading(btn,false);}
+  };
+}
+
+/* ===== 功能二：专项辅助 ===== */
+async function renderSpecialty(c) {
+  const [ops, kb] = await Promise.all([api("/specialty/operations"), api("/specialty/knowledge")]);
+  const opsHTML = ops.operations.map(o =>
+    '<tr><td><code>' + esc(o.operation) + '</code></td><td>' + esc((o.params||[]).join(", ") || "—") + '</td></tr>').join("");
+  const tables = kb.tables || {};
+  const kbHTML = Object.entries(tables).map(([name, info]) =>
+    '<tr><td><code>' + esc(name) + '</code></td><td>' + esc(info.count) + '</td><td class="kv">' + esc(info.sample_source || "—") + '</td><td class="kv">' + esc(info.sample_version || "—") + '</td></tr>').join("");
+  c.innerHTML =
+    '<div class="page-head"><h2>专项辅助</h2><p>面向临床医护的 9 项专项操作与结构化知识目录</p></div>' +
+    '<div class="grid cols-2"><div class="card"><h3>9 项专项操作</h3><table><thead><tr><th>操作</th><th>参数</th></tr></thead><tbody>' + opsHTML + '</tbody></table></div>' +
+    '<div class="card"><h3>结构化知识表</h3><div class="hint">' + esc(kb.note||"") + '</div><table><thead><tr><th>表</th><th>条目</th><th>来源</th><th>版本</th></tr></thead><tbody>' + kbHTML + '</tbody></table></div></div>' +
+    '<div style="height:16px"></div>' +
+    '<div class="card" id="spCfgCard"><h3>功能配置</h3><div class="empty">加载中…</div></div>';
+  // 复用配置区
+  const holder = $("spCfgCard");
+  const cfg = await api("/features/specialty/config");
+  holder.innerHTML = '<h3>功能配置 <span class="tag">敏感值已掩码</span></h3><div id="cfgFields">' +
+    Object.entries(cfg.config).map(([name,item]) => {
+      let input = item.type==="bool"
+        ? '<select data-cfg="'+name+'"><option value="true"'+(item.value===true?" selected":"")+'>开启</option><option value="false"'+(item.value===false?" selected":"")+'>关闭</option></select>'
+        : '<input data-cfg="'+name+'" value="'+esc(item.value)+'" type="'+(item.type==="int"?"number":"text")+'">';
+      return '<div class="cfg-field"><div><div class="name">'+esc(name)+'</div><div class="desc">'+esc(item.description)+'</div></div>'+input+'</div>';
+    }).join("") + '</div><div class="cfg-actions"><button class="btn primary" id="saveCfg" style="width:auto;margin:0">保存配置</button><span class="saved" id="saveMsg"></span></div>';
+  $("saveCfg").onclick = async () => {
+    const updates={};
+    document.querySelectorAll("#cfgFields [data-cfg]").forEach(el=>{
+      const item=cfg.config[el.dataset.cfg]; let raw=el.value;
+      if(item.type==="bool") raw=raw==="true"; else if(item.type==="int") raw=parseInt(raw,10);
+      updates[el.dataset.cfg]=raw;
+    });
+    const btn=$("saveCfg"); btnLoading(btn,true,"保存中");
+    try{await api("/features/specialty/config",{method:"POST",body:{updates}});toast("配置已保存");$("saveMsg").textContent="✓ 已保存";}
+    catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+}
+
+/* ===== 功能三：安全合规 ===== */
+async function renderSafety(c) {
+  const stats = await api("/safety/audit/stats");
+  c.innerHTML =
+    '<div class="page-head"><h2>安全 / 合规 / 风控</h2><p>审计留痕查询与风控配置</p></div>' +
+    '<div class="card"><h3>审计统计</h3><div class="grid cols-4">' +
+      Object.entries(stats).filter(([k,v])=>typeof v!=="object").map(([k,v])=>'<div class="stat"><div class="v">'+esc(fmt(v))+'</div><div class="k">'+esc(k)+'</div></div>').join("") +
+    '</div></div><div style="height:16px"></div>' +
+    '<div class="card"><h3>审计日志查询</h3><div class="toolbar">' +
+      '<input id="auKeyword" placeholder="关键词（可选）"><input id="auRole" placeholder="角色 patient/clinician（可选）">' +
+      '<input id="auLimit" type="number" value="30" style="width:90px" title="条数">' +
+      '<button class="btn primary" id="auSearch" style="width:auto">查询</button></div>' +
+      '<div id="auResult"><div class="empty">点击查询查看审计记录</div></div></div>' +
+    '<div style="height:16px"></div><div class="card" id="sfCfgCard"><h3>功能配置</h3><div class="empty">加载中…</div></div>';
+  $("auSearch").onclick = async () => {
+    const body={limit:parseInt($("auLimit").value,10)||30};
+    if($("auKeyword").value.trim()) body.keyword=$("auKeyword").value.trim();
+    if($("auRole").value.trim()) body.role=$("auRole").value.trim();
+    const btn=$("auSearch"); btnLoading(btn,true,"查询中");
+    try{const d=await api("/safety/audit/query",{method:"POST",body});
+      const rows=d.entries||[];
+      $("auResult").innerHTML = rows.length
+        ? '<table><thead><tr><th>时间</th><th>角色</th><th>问题（脱敏）</th><th>拦截</th></tr></thead><tbody>'+rows.map(r=>
+            '<tr><td class="kv">'+esc(r.timestamp||"")+'</td><td>'+esc(r.role||"")+'</td><td>'+esc(String(r.question||"").slice(0,80))+'</td><td>'+(r.filter_result&&r.filter_result.blocked?'<span class="badge off">拦截</span>':'<span class="badge active">通过</span>')+'</td></tr>').join("")+'</tbody></table>'
+        : '<div class="empty">无匹配的审计记录</div>';
+    }catch(e){toast(e.message,"err");$("auResult").innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>';}
+    finally{btnLoading(btn,false);}
+  };
+  renderConfigInto("sfCfgCard","safety");
+}
+
+/* ===== 功能四：知识库 ===== */
+async function renderKB(c) {
+  c.innerHTML =
+    '<div class="page-head"><h2>知识库管理</h2><p>文档状态管理、检索调试</p></div>' +
+    '<div class="card"><h3>文档列表</h3><div class="toolbar">' +
+      '<select id="kbStatus"><option value="">全部状态</option><option value="active">active</option><option value="archived">archived</option><option value="invalid">invalid</option></select>' +
+      '<input id="kbCat" placeholder="分类过滤（可选）"><button class="btn primary" id="kbLoad" style="width:auto">加载</button></div>' +
+      '<div id="kbDocs"><div class="empty">点击加载查看文档</div></div></div>' +
+    '<div style="height:16px"></div>' +
+    '<div class="card"><h3>检索调试</h3><div class="toolbar">' +
+      '<input id="dbgQ" placeholder="输入测试问题" style="flex:1;min-width:220px">' +
+      '<input id="dbgTopK" type="number" value="5" style="width:80px" title="top_k">' +
+      '<button class="btn primary" id="dbgGo" style="width:auto">调试检索</button></div>' +
+      '<div id="dbgResult"><div class="empty">输入问题后调试检索效果</div></div></div>' +
+    '<div style="height:16px"></div><div class="card" id="kbCfgCard"><h3>功能配置</h3><div class="empty">加载中…</div></div>';
+  const loadDocs = async () => {
+    const params={}; if($("kbStatus").value) params.status=$("kbStatus").value; if($("kbCat").value.trim()) params.category=$("kbCat").value.trim();
+    const btn=$("kbLoad"); btnLoading(btn,true,"加载中");
+    try{const d=await api("/kb/documents"+(Object.keys(params).length?"?"+new URLSearchParams(params):""));
+      const rows=d.documents||[];
+      $("kbDocs").innerHTML = rows.length
+        ? '<table><thead><tr><th>标题</th><th>分类</th><th>状态</th><th>操作</th></tr></thead><tbody>'+rows.map(r=>
+            '<tr><td>'+esc(r.title||r.id||"")+'</td><td>'+esc(r.category||"—")+'</td><td><span class="badge '+esc(r.status||"")+'">'+esc(r.status||"—")+'</span></td>'+
+            '<td><select data-doc="'+esc(r.id)+'" class="kb-status-sel"><option value="active"'+(r.status==="active"?" selected":"")+'>active</option><option value="archived"'+(r.status==="archived"?" selected":"")+'>archived</option><option value="invalid"'+(r.status==="invalid"?" selected":"")+'>invalid</option></select> <button class="btn sm ghost kb-save" data-doc="'+esc(r.id)+'">保存</button></td></tr>').join("")+'</tbody></table>'
+        : '<div class="empty">暂无文档</div>';
+      document.querySelectorAll(".kb-save").forEach(b=>b.onclick=async()=>{
+        const id=b.dataset.doc, status=document.querySelector('.kb-status-sel[data-doc="'+CSS.escape(id)+'"]').value;
+        const bb=b; btnLoading(bb,true,"保存"); try{await api("/kb/documents/"+encodeURIComponent(id)+"/status",{method:"POST",body:{status}});toast("状态已更新");loadDocs();}catch(e){toast(e.message,"err");}finally{btnLoading(bb,false);}
+      });
+    }catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+  $("kbLoad").onclick = loadDocs; loadDocs();
+  $("dbgGo").onclick = async () => {
+    const q=$("dbgQ").value.trim(); if(!q){toast("请输入测试问题","err");return;}
+    const btn=$("dbgGo"); btnLoading(btn,true,"检索中");
+    try{const d=await api("/kb/debug",{method:"POST",body:{question:q,top_k:parseInt($("dbgTopK").value,10)||5}});
+      let html='<pre style="white-space:pre-wrap;font-size:12px;background:var(--soft);padding:14px;border-radius:9px;max-height:360px;overflow:auto">'+esc(JSON.stringify(d,null,2))+'</pre>';
+      $("dbgResult").innerHTML=html;
+    }catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+  renderConfigInto("kbCfgCard","kb");
+}
+
+/* ===== 功能五：运维 ===== */
+async function renderOps(c) {
+  const d = await api("/features/ops");
+  c.innerHTML =
+    '<div class="page-head"><h2>后台运维与统计</h2><p>模型切换、RAG 开关、运行时参数、会话管理</p></div>' +
+    '<div class="grid cols-2">' +
+      '<div class="card"><h3>模型管理</h3><p class="kv">当前模型：<b id="curModel">—</b></p>' +
+        '<div class="toolbar" style="margin-top:10px"><input id="mProvider" placeholder="provider (如 fake/openai/ollama)"><input id="mModel" placeholder="model"></div>' +
+        '<div class="toolbar"><input id="mTemp" type="number" value="0.1" step="0.1" style="width:90px" title="temperature">' +
+        '<button class="btn primary" id="mSwitch" style="width:auto">切换模型</button></div></div>' +
+      '<div class="card"><h3>RAG 开关</h3><p class="hint">关闭 RAG 后进入纯 LLM 模式，检索增强不再参与回答。</p>' +
+        '<div class="toolbar"><select id="ragSel"><option value="true">开启 RAG</option><option value="false">关闭 RAG（纯 LLM）</option></select>' +
+        '<button class="btn primary" id="ragGo" style="width:auto">应用</button></div><div class="kv" id="ragState"></div></div>' +
+    '</div><div style="height:16px"></div>' +
+    '<div class="grid cols-2">' +
+      '<div class="card"><h3>运行时参数</h3><div id="paramsBox" class="empty">加载中…</div>' +
+        '<div class="toolbar" style="margin-top:10px"><button class="btn ghost" id="paramsReload">刷新</button><button class="btn danger" id="paramsReset">重置参数</button></div></div>' +
+      '<div class="card"><h3>会话管理</h3><div class="toolbar"><button class="btn ghost" id="sessLoad">刷新会话</button><button class="btn danger" id="sessPurge">清理敏感会话</button></div><div id="sessBox" class="empty">点击刷新查看会话</div></div>' +
+    '</div><div style="height:16px"></div><div class="card" id="opsCfgCard"><h3>功能配置</h3><div class="empty">加载中…</div></div>';
+
+  $("curModel").textContent = d.current_model ? (d.current_model.provider + " / " + d.current_model.model) : "—";
+  $("ragSel").value = String(d.rag_enabled);
+  $("ragState").innerHTML = "当前 RAG：<b>" + (d.rag_enabled?"开启":"关闭") + "</b>";
+
+  $("mSwitch").onclick = async () => {
+    const provider=$("mProvider").value.trim(), model=$("mModel").value.trim();
+    if(!provider||!model){toast("请填写 provider 和 model","err");return;}
+    const body={provider,model}; if($("mTemp").value) body.temperature=parseFloat($("mTemp").value);
+    const btn=$("mSwitch"); btnLoading(btn,true,"切换中");
+    try{const r=await api("/ops/model/switch",{method:"POST",body});toast("模型已切换");$("curModel").textContent=r.provider+" / "+r.model;}
+    catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+  $("ragGo").onclick = async () => {
+    const enabled=$("ragSel").value==="true"; const btn=$("ragGo"); btnLoading(btn,true,"应用");
+    try{await api("/ops/rag",{method:"POST",body:{enabled}});toast("RAG 已"+(enabled?"开启":"关闭"));$("ragState").innerHTML="当前 RAG：<b>"+(enabled?"开启":"关闭")+"</b>";}
+    catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+  const loadParams = async () => {
+    const p=await api("/features/ops/config");
+    // 运行时参数属于 ops 配置但由 OpsManager 管理；这里展示配置中的运行时项
+    const box=$("paramsBox");
+    const watch=["rag_enabled","rerank_threshold"];
+    box.innerHTML='<table><thead><tr><th>参数</th><th>值</th></tr></thead><tbody>'+watch.map(k=>{
+      const it=p.config[k]; return it?'<tr><td>'+esc(k)+'</td><td><input data-p="'+k+'" value="'+esc(it.value)+'" style="padding:5px 8px;border:1px solid var(--line);border-radius:6px;width:120px"></td></tr>':"";
+    }).join("")+'</tbody></table><div class="cfg-actions"><button class="btn primary" id="paramsSave" style="width:auto">保存参数</button></div>';
+    $("paramsSave").onclick=async()=>{
+      const body={}; document.querySelectorAll("#paramsBox [data-p]").forEach(el=>{body[el.dataset.p]=el.value;});
+      const btn=$("paramsSave"); btnLoading(btn,true,"保存");
+      try{await api("/features/ops/config",{method:"POST",body:{updates:body}});toast("参数已保存");}
+      catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+    };
+  };
+  try{await loadParams();}catch(e){$("paramsBox").innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>';}
+  $("paramsReload").onclick=()=>loadParams().catch(e=>toast(e.message,"err"));
+  $("paramsReset").onclick=async()=>{if(!confirm("确定重置运行时参数？"))return;const btn=$("paramsReset");btnLoading(btn,true,"重置");try{await api("/ops/params/reset",{method:"POST",body:{}});toast("参数已重置");loadParams();}catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}};
+  const loadSess=async()=>{
+    try{const s=await api("/ops/sessions");
+      const rows=s.sessions||[];
+      $("sessBox").innerHTML=rows.length?'<table><thead><tr><th>会话 ID</th><th>操作</th></tr></thead><tbody>'+rows.map(x=>{
+        const id=typeof x==="string"?x:(x.session_id||x.id||"");
+        return '<tr><td><code>'+esc(id)+'</code></td><td><button class="btn sm danger sessDel" data-id="'+esc(id)+'">删除</button></td></tr>';
+      }).join("")+'</tbody></table>':'<div class="empty">暂无会话</div>';
+      document.querySelectorAll(".sessDel").forEach(b=>b.onclick=async()=>{if(!confirm("删除该会话？"))return;const btn=b;btnLoading(btn,true,"删除");try{await api("/ops/sessions/"+encodeURIComponent(b.dataset.id),{method:"DELETE"});toast("会话已删除");loadSess();}catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}});
+    }catch(e){$("sessBox").innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>';}
+  };
+  $("sessLoad").onclick=loadSess; loadSess();
+  $("sessPurge").onclick=async()=>{if(!confirm("确定批量清理敏感会话？"))return;const btn=$("sessPurge");btnLoading(btn,true,"清理");try{await api("/ops/sessions/purge-sensitive",{method:"POST",body:{}});toast("敏感会话已清理");loadSess();}catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}};
+  renderConfigInto("opsCfgCard","ops");
+}
+
+async function renderConfigInto(cardId, feature) {
+  const card=$(cardId); if(!card) return;
+  try{
+    const cfg=await api("/features/"+feature+"/config");
+    card.innerHTML='<h3>功能配置 <span class="tag">敏感值已掩码</span></h3><div id="cfgFields-'+feature+'">'+
+      Object.entries(cfg.config).map(([name,item])=>{
+        let input=item.type==="bool"
+          ? '<select data-cfg="'+name+'"><option value="true"'+(item.value===true?" selected":"")+'>开启</option><option value="false"'+(item.value===false?" selected":"")+'>关闭</option></select>'
+          : '<input data-cfg="'+name+'" value="'+esc(item.value)+'" type="'+(item.type==="int"||item.type==="float"?"number":"text")+'"'+(item.sensitive?" placeholder='留空则不修改'":"")+'>';
+        return '<div class="cfg-field"><div><div class="name">'+esc(name)+(item.sensitive?' <span class="badge sensitive">敏感</span>':'')+'</div><div class="desc">'+esc(item.description)+'</div></div>'+input+'</div>';
+      }).join("")+'</div><div class="cfg-actions"><button class="btn primary" id="saveCfg-'+feature+'" style="width:auto;margin:0">保存配置</button><span class="saved" id="saveMsg-'+feature+'"></span></div>';
+    $("saveCfg-"+feature).onclick=async()=>{
+      const updates={};
+      document.querySelectorAll("#cfgFields-"+feature+" [data-cfg]").forEach(el=>{
+        const item=cfg.config[el.dataset.cfg]; let raw=el.value;
+        if(item.sensitive&&!raw)return;
+        if(item.type==="bool")raw=raw==="true";else if(item.type==="int")raw=parseInt(raw,10);else if(item.type==="float")raw=parseFloat(raw);
+        if(isNaN(raw)){toast(el.dataset.cfg+" 需要有效数字","err");return;}
+        updates[el.dataset.cfg]=raw;
+      });
+      if(!Object.keys(updates).length){toast("没有需要保存的更改");return;}
+      const btn=$("saveCfg-"+feature);btnLoading(btn,true,"保存中");
+      try{await api("/features/"+feature+"/config",{method:"POST",body:{updates}});toast("配置已保存");$("saveMsg-"+feature).textContent="✓ 已保存";}
+      catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+    };
+  }catch(e){card.innerHTML='<div class="empty" style="color:var(--red)">'+esc(e.message)+'</div>';}
+}
+
+/* ===== 操作日志 ===== */
+async function renderActions(c) {
+  c.innerHTML='<div class="page-head"><h2>操作日志</h2><p>所有管理写操作的审计留痕（JSONL · 只增不改）</p></div>'+
+    '<div class="card"><div class="toolbar"><input id="actActor" placeholder="按 actor 过滤（可选）">'+
+    '<input id="actLimit" type="number" value="50" style="width:90px" title="条数"><button class="btn primary" id="actLoad" style="width:auto">加载日志</button></div>'+
+    '<div id="actBox"><div class="empty">点击加载查看操作日志</div></div></div>';
+  const load=async()=>{
+    const params={limit:parseInt($("actLimit").value,10)||50}; if($("actActor").value.trim())params.actor=$("actActor").value.trim();
+    const btn=$("actLoad");btnLoading(btn,true,"加载中");
+    try{const d=await api("/actions?"+new URLSearchParams(params));const rows=d.actions||[];
+      $("actBox").innerHTML=rows.length?'<table><thead><tr><th>时间</th><th>操作</th><th>功能</th><th>操作人</th><th>详情</th></tr></thead><tbody>'+rows.map(r=>
+        '<tr><td class="kv">'+new Date(r.ts*1000).toLocaleString()+'</td><td><code>'+esc(r.action)+'</code></td><td>'+esc(r.feature||"—")+'</td><td class="kv">'+esc(r.actor||"")+'</td><td class="kv">'+esc(r.detail!=null?JSON.stringify(r.detail):"")+'</td></tr>').join("")+'</tbody></table>':'<div class="empty">暂无操作日志</div>';
+    }catch(e){toast(e.message,"err");}finally{btnLoading(btn,false);}
+  };
+  $("actLoad").onclick=load;load();
+}
+
+/* ---------- 启动 ---------- */
+(function init(){
+  if (API_KEY) {
+    api("/overview").then(()=>{
+      $("loginWrap").style.display="none";$("app").style.display="flex";
+      $("keyMask").textContent="密钥 ••••"+API_KEY.slice(-4);render();
+    }).catch(()=>{API_KEY="";sessionStorage.removeItem(KEY_STORE);});
+  }
+})();
+</script>
+</body>
+</html>
