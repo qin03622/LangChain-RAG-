@@ -1,0 +1,816 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>MedRAG · 医疗临床智能问答系统 — 功能展示</title>
+<style>
+  :root{
+    --navy:#0d2444; --navy2:#12335e; --blue:#1e6fd9; --blue2:#0f4c9c;
+    --teal:#12a5a5; --teal2:#0d8b8b; --bg:#f3f6fb; --card:#ffffff;
+    --ink:#1a2b45; --muted:#6b7c96; --line:#e3eaf4; --soft:#eef4fd;
+    --red:#e0505a; --green:#1fa971; --amber:#e59a1f;
+    --shadow:0 6px 22px rgba(16,44,86,.08); --radius:14px;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Microsoft YaHei","PingFang SC","Segoe UI",system-ui,sans-serif;
+    background:var(--bg);color:var(--ink);font-size:14px;line-height:1.6;-webkit-font-smoothing:antialiased}
+  .app{display:flex;min-height:100vh}
+
+  /* ---------- Sidebar ---------- */
+  .sidebar{width:248px;flex:0 0 248px;background:linear-gradient(170deg,var(--navy),var(--navy2));
+    color:#dbe7f7;display:flex;flex-direction:column;position:sticky;top:0;height:100vh}
+  .brand{display:flex;align-items:center;gap:12px;padding:26px 22px 22px;border-bottom:1px solid rgba(255,255,255,.08)}
+  .brand .logo{width:42px;height:42px;border-radius:12px;background:linear-gradient(135deg,var(--teal),var(--blue));
+    display:flex;align-items:center;justify-content:center;font-weight:800;font-size:19px;color:#fff;
+    box-shadow:0 6px 16px rgba(18,165,165,.45)}
+  .brand h1{font-size:18px;letter-spacing:.5px;color:#fff}
+  .brand p{font-size:11px;color:#8fa7c6;margin-top:1px}
+  .nav{padding:16px 12px;flex:1;overflow-y:auto}
+  .nav-label{font-size:11px;color:#66809f;padding:8px 12px 10px;letter-spacing:1px}
+  .nav-item{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:10px;
+    cursor:pointer;color:#b9cbe2;margin-bottom:4px;transition:.18s;border:1px solid transparent}
+  .nav-item .ic{width:22px;text-align:center;font-size:16px;filter:grayscale(.3)}
+  .nav-item:hover{background:rgba(255,255,255,.07);color:#fff}
+  .nav-item.active{background:linear-gradient(90deg,rgba(30,111,217,.9),rgba(18,165,165,.75));
+    color:#fff;border-color:rgba(255,255,255,.12);box-shadow:0 6px 16px rgba(0,0,0,.18)}
+  .nav-item.active .ic{filter:none}
+  .nav-item .num{margin-left:auto;font-size:10px;background:rgba(255,255,255,.14);padding:1px 7px;border-radius:20px}
+  .side-foot{padding:16px 20px;font-size:11px;color:#6d86a6;border-top:1px solid rgba(255,255,255,.08)}
+  .side-foot b{color:#9fb6d2}
+
+  /* ---------- Main ---------- */
+  .main{flex:1;min-width:0;display:flex;flex-direction:column}
+  .topbar{height:66px;background:var(--card);border-bottom:1px solid var(--line);display:flex;
+    align-items:center;padding:0 30px;gap:16px;position:sticky;top:0;z-index:20}
+  .topbar .crumb{color:var(--muted);font-size:13px}
+  .topbar .crumb b{color:var(--ink)}
+  .topbar .spacer{flex:1}
+  .pill{font-size:12px;padding:5px 12px;border-radius:20px;background:var(--soft);color:var(--blue2);font-weight:600}
+  .pill.ok{background:#e6f7ef;color:var(--green)}
+  .pill .dot{display:inline-block;width:7px;height:7px;border-radius:50%;background:var(--green);margin-right:6px}
+  .avatar{width:34px;height:34px;border-radius:50%;background:linear-gradient(135deg,#1e6fd9,#12a5a5);
+    color:#fff;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:13px}
+
+  .content{padding:26px 30px 60px;max-width:1280px;width:100%;margin:0 auto}
+  .panel{display:none;animation:fade .35s ease}
+  .panel.active{display:block}
+  @keyframes fade{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:none}}
+
+  .page-head{margin-bottom:22px}
+  .page-head .tag{display:inline-block;font-size:11px;font-weight:700;color:var(--teal2);
+    background:#e2f6f5;padding:3px 10px;border-radius:6px;margin-bottom:8px}
+  .page-head h2{font-size:23px;color:var(--navy)}
+  .page-head p{color:var(--muted);margin-top:5px;max-width:820px}
+
+  .grid{display:grid;gap:16px}
+  .g2{grid-template-columns:repeat(2,1fr)}
+  .g3{grid-template-columns:repeat(3,1fr)}
+  .g4{grid-template-columns:repeat(4,1fr)}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);
+    padding:20px;box-shadow:var(--shadow)}
+  .card h3{font-size:15px;color:var(--navy);margin-bottom:4px;display:flex;align-items:center;gap:8px}
+  .card h3 .chip{font-size:10px;font-weight:700;padding:2px 8px;border-radius:6px;background:var(--soft);color:var(--blue2)}
+  .card .sub{font-size:12px;color:var(--muted);margin-bottom:16px}
+  .divider{height:1px;background:var(--line);margin:16px 0}
+
+  /* stat cards */
+  .stat{background:var(--card);border:1px solid var(--line);border-radius:var(--radius);padding:18px 20px;box-shadow:var(--shadow);position:relative;overflow:hidden}
+  .stat .k{font-size:12px;color:var(--muted)}
+  .stat .v{font-size:30px;font-weight:800;color:var(--navy);margin:4px 0}
+  .stat .v small{font-size:13px;color:var(--muted);font-weight:600}
+  .stat .bar{height:4px;border-radius:4px;margin-top:8px;background:var(--line)}
+  .stat .bar i{display:block;height:100%;border-radius:4px}
+  .stat .ic{position:absolute;right:16px;top:16px;font-size:22px;opacity:.16}
+
+  /* feature overview tiles */
+  .ftile{cursor:pointer;transition:.2s;border-top:3px solid var(--blue)}
+  .ftile:hover{transform:translateY(-4px);box-shadow:0 12px 28px rgba(16,44,86,.13)}
+  .ftile .fi{font-size:26px;margin-bottom:8px}
+  .ftile h4{font-size:15px;color:var(--navy)}
+  .ftile p{font-size:12px;color:var(--muted);margin:6px 0 12px;min-height:38px}
+  .ftile .go{font-size:12px;color:var(--blue);font-weight:700}
+
+  /* buttons / inputs */
+  .btn{border:none;border-radius:8px;padding:9px 16px;font-size:13px;font-weight:600;cursor:pointer;
+    background:var(--blue);color:#fff;transition:.18s;font-family:inherit}
+  .btn:hover{background:var(--blue2);transform:translateY(-1px)}
+  .btn.teal{background:var(--teal)} .btn.teal:hover{background:var(--teal2)}
+  .btn.ghost{background:var(--soft);color:var(--blue2)}
+  .btn.ghost:hover{background:#dfeafb}
+  .btn.sm{padding:6px 11px;font-size:12px}
+  input,textarea,select{font-family:inherit;font-size:13px;border:1px solid var(--line);border-radius:8px;
+    padding:9px 11px;width:100%;color:var(--ink);background:#fff;outline:none;transition:.18s}
+  input:focus,textarea:focus,select:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(30,111,217,.12)}
+  label{font-size:12px;color:var(--muted);display:block;margin-bottom:5px;font-weight:600}
+  .field{margin-bottom:12px}
+  .inline{display:flex;gap:8px;align-items:center}
+
+  /* segmented */
+  .seg{display:inline-flex;background:var(--soft);border-radius:9px;padding:3px;gap:2px}
+  .seg button{border:none;background:transparent;padding:7px 14px;border-radius:7px;font-size:12px;
+    font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;transition:.18s}
+  .seg button.on{background:#fff;color:var(--blue2);box-shadow:0 2px 8px rgba(16,44,86,.1)}
+
+  /* chat */
+  .chat-wrap{display:flex;flex-direction:column;height:440px}
+  .chat-log{flex:1;overflow-y:auto;background:#f8fafd;border:1px solid var(--line);border-radius:10px;
+    padding:14px;display:flex;flex-direction:column;gap:12px;margin-bottom:12px}
+  .msg{max-width:82%;padding:10px 13px;border-radius:12px;font-size:13px;line-height:1.65;white-space:pre-wrap}
+  .msg.q{align-self:flex-end;background:var(--blue);color:#fff;border-bottom-right-radius:3px}
+  .msg.a{align-self:flex-start;background:#fff;border:1px solid var(--line);border-bottom-left-radius:3px}
+  .msg.sys{align-self:center;background:#fff6e6;color:#8a6516;border:1px solid #f5dfae;font-size:12px;border-radius:8px}
+  .cite{margin-top:8px;font-size:11px;color:var(--blue2);background:var(--soft);border-left:3px solid var(--blue);
+    padding:6px 10px;border-radius:4px}
+  .chat-input{display:flex;gap:8px}
+  .chat-input input{flex:1}
+  .quick{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:8px}
+  .quick span{font-size:11px;background:#fff;border:1px solid var(--line);padding:4px 10px;border-radius:16px;
+    cursor:pointer;color:var(--muted);transition:.15s}
+  .quick span:hover{border-color:var(--blue);color:var(--blue)}
+
+  /* result blocks */
+  .result-box{background:#f8fafd;border:1px solid var(--line);border-radius:10px;padding:15px;min-height:80px;font-size:13px}
+  .disclaimer{margin-top:12px;background:#fff6e6;border:1px solid #f3dca8;color:#8a6516;
+    font-size:12px;padding:9px 12px;border-radius:8px}
+  .disclaimer b{color:#a5761a}
+  .warn{background:#fdecee;border-color:#f3c3c7;color:#a5363d}
+  .kv{display:grid;grid-template-columns:120px 1fr;gap:6px 12px;font-size:12px}
+  .kv .k{color:var(--muted);font-weight:600}
+  .tagx{display:inline-block;font-size:11px;padding:2px 8px;border-radius:5px;margin:2px 3px 2px 0}
+  .tagx.b{background:var(--soft);color:var(--blue2)} .tagx.g{background:#e6f7ef;color:var(--green)}
+  .tagx.r{background:#fdecee;color:var(--red)} .tagx.a{background:#fff5e3;color:var(--amber)}
+
+  /* tabs row */
+  .tabs{display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px}
+  .tabs button{border:1px solid var(--line);background:#fff;color:var(--muted);border-radius:8px;
+    padding:7px 12px;font-size:12px;cursor:pointer;font-family:inherit;transition:.15s}
+  .tabs button:hover{border-color:var(--blue)}
+  .tabs button.on{background:var(--blue);color:#fff;border-color:var(--blue)}
+
+  /* table */
+  table{width:100%;border-collapse:collapse;font-size:12px}
+  th,td{text-align:left;padding:9px 10px;border-bottom:1px solid var(--line)}
+  th{color:var(--muted);font-weight:600;background:#f8fafd}
+  tr:hover td{background:#fafcff}
+  .badge{font-size:10px;padding:2px 8px;border-radius:12px;font-weight:700}
+  .badge.active{background:#e6f7ef;color:var(--green)}
+  .badge.archived{background:#eef1f6;color:var(--muted)}
+  .badge.invalid{background:#fdecee;color:var(--red)}
+  .badge.pub{background:var(--soft);color:var(--blue2)}
+  .badge.dept{background:#e6f7ef;color:var(--teal2)}
+  .badge.conf{background:#fff5e3;color:var(--amber)}
+
+  /* bars chart */
+  .barchart{display:flex;flex-direction:column;gap:11px;margin-top:6px}
+  .brow{display:flex;align-items:center;gap:10px;font-size:12px}
+  .brow .lbl{width:70px;color:var(--muted);text-align:right;flex:0 0 70px}
+  .brow .track{flex:1;background:var(--line);border-radius:6px;height:16px;overflow:hidden}
+  .brow .track i{display:block;height:100%;border-radius:6px;width:0;transition:width .8s ease}
+  .brow .val{width:34px;font-weight:700;color:var(--navy)}
+
+  /* toggle */
+  .toggle{width:42px;height:23px;border-radius:20px;background:#cbd5e3;position:relative;cursor:pointer;transition:.2s;flex:0 0 42px}
+  .toggle::after{content:"";position:absolute;width:17px;height:17px;border-radius:50%;background:#fff;top:3px;left:3px;transition:.2s;box-shadow:0 1px 4px rgba(0,0,0,.2)}
+  .toggle.on{background:var(--teal)} .toggle.on::after{left:22px}
+
+  .flow{display:flex;align-items:center;gap:6px;flex-wrap:wrap;font-size:11px;margin:4px 0 14px}
+  .flow .step{background:var(--soft);color:var(--blue2);padding:5px 10px;border-radius:7px;font-weight:600}
+  .flow .arw{color:var(--muted)}
+
+  .logline{font-family:consolas,monospace;font-size:11px;background:#0d2444;color:#b6d4f5;padding:9px 11px;
+    border-radius:7px;margin-bottom:6px;white-space:pre-wrap;word-break:break-all}
+  .logline .hl{color:#5fe0c0}
+
+  .kbd{font-family:consolas,monospace;background:#eef2f8;border:1px solid var(--line);border-bottom-width:2px;
+    padding:1px 6px;border-radius:5px;font-size:11px;color:var(--blue2)}
+
+  .note{font-size:11px;color:var(--muted);margin-top:8px}
+  .foot-legend{display:flex;gap:16px;flex-wrap:wrap;font-size:11px;color:var(--muted);margin-top:12px}
+  .foot-legend span{display:flex;align-items:center;gap:5px}
+  .dotc{width:9px;height:9px;border-radius:50%;display:inline-block}
+
+  @media(max-width:900px){.g4{grid-template-columns:repeat(2,1fr)}.g3,.g2{grid-template-columns:1fr}.sidebar{width:70px;flex-basis:70px}.brand h1,.brand p,.nav-label,.nav-item span:not(.ic),.nav-item .num,.side-foot{display:none}.nav-item{justify-content:center}}
+</style>
+</head>
+<body>
+<div class="app">
+  <!-- ============ SIDEBAR ============ -->
+  <aside class="sidebar">
+    <div class="brand">
+      <div class="logo">M</div>
+      <div><h1>MedRAG</h1><p>医疗临床智能问答系统</p></div>
+    </div>
+    <nav class="nav">
+      <div class="nav-label">功能导航 / NAVIGATION</div>
+      <div class="nav-item active" data-target="overview"><span class="ic">◈</span><span>系统总览</span></div>
+      <div class="nav-item" data-target="f1"><span class="ic">◉</span><span>临床增强问答</span><span class="num">01</span></div>
+      <div class="nav-item" data-target="f2"><span class="ic">✚</span><span>医护专项辅助</span><span class="num">02</span></div>
+      <div class="nav-item" data-target="f3"><span class="ic">⛨</span><span>安全合规风控</span><span class="num">03</span></div>
+      <div class="nav-item" data-target="f4"><span class="ic">▤</span><span>知识库管理</span><span class="num">04</span></div>
+      <div class="nav-item" data-target="f5"><span class="ic">⚙</span><span>后台运维统计</span><span class="num">05</span></div>
+      <div class="nav-label" style="margin-top:18px">技术栈 / STACK</div>
+      <div style="font-size:11px;color:#7792b3;padding:0 12px;line-height:2">
+        LangChain · FAISS<br>Retrieval-Augmented Gen<br>FastAPI · 医疗 NLP
+      </div>
+    </nav>
+    <div class="side-foot">版本 <b>v1.1.0</b> · 技术演示<br>⚠ 内容仅供参考，非医疗建议</div>
+  </aside>
+
+  <!-- ============ MAIN ============ -->
+  <div class="main">
+    <header class="topbar">
+      <div class="crumb">MedRAG / <b id="crumb">系统总览</b></div>
+      <div class="spacer"></div>
+      <div class="pill ok"><span class="dot"></span>服务运行中</div>
+      <div class="pill">索引已就绪 · 6 篇文档</div>
+      <div class="avatar">医</div>
+    </header>
+
+    <div class="content">
+
+      <!-- ---------- OVERVIEW ---------- -->
+      <section class="panel active" id="overview">
+        <div class="page-head">
+          <span class="tag">MEDRAG SHOWCASE</span>
+          <h2>医疗临床智能诊疗问答系统 · 功能总览</h2>
+          <p>基于 LangChain 的 RAG 系统：把医学指南与教材构建为向量索引，提问时先检索证据，再由大模型生成<b>可溯源、带免责声明</b>的回答。系统包含五大功能板块，点击下方卡片或左侧导航进入交互演示。</p>
+        </div>
+
+        <div class="grid g4" style="margin-bottom:18px">
+          <div class="stat"><span class="ic">▤</span><div class="k">知识文档</div><div class="v">6 <small>篇</small></div><div class="bar"><i style="width:75%;background:var(--blue)"></i></div></div>
+          <div class="stat"><span class="ic">◈</span><div class="k">向量分块</div><div class="v">1,284 <small>chunks</small></div><div class="bar"><i style="width:88%;background:var(--teal)"></i></div></div>
+          <div class="stat"><span class="ic">◉</span><div class="k">累计问答</div><div class="v">3,527 <small>次</small></div><div class="bar"><i style="width:64%;background:var(--blue2)"></i></div></div>
+          <div class="stat"><span class="ic">⛨</span><div class="k">安全拦截</div><div class="v">142 <small>次</small></div><div class="bar"><i style="width:32%;background:var(--red)"></i></div></div>
+        </div>
+
+        <div class="grid g3">
+          <div class="card ftile" data-goto="f1" style="border-color:var(--line);border-top-color:var(--blue)">
+            <div class="fi">◉</div><h4>功能一 · 临床增强问答</h4>
+            <p>精准 / 综合双模式检索、HyDE 改写、引用溯源与原文跳转、多轮会话记忆、医生反馈调优。</p>
+            <div class="go">进入演示 →</div>
+          </div>
+          <div class="card ftile" data-goto="f2" style="border-color:var(--line);border-top-color:var(--teal)">
+            <div class="fi">✚</div><h4>功能二 · 医护专项辅助</h4>
+            <p>7 大专项 / 9 个操作：症状鉴别、报告解读、药学、指南、文书、路径、过敏风险，强制免责声明。</p>
+            <div class="go">进入演示 →</div>
+          </div>
+          <div class="card ftile" data-goto="f3" style="border-color:var(--line);border-top-color:var(--red)">
+            <div class="fi">⛨</div><h4>功能三 · 安全合规风控</h4>
+            <p>前置内容过滤、隐私脱敏、医患双角色口径、幻觉抑制、全量审计留痕，违规检索前短路拦截。</p>
+            <div class="go">进入演示 →</div>
+          </div>
+          <div class="card ftile" data-goto="f4" style="border-color:var(--line);border-top-color:var(--amber)">
+            <div class="fi">▤</div><h4>功能四 · 知识库管理</h4>
+            <p>文档上传与增量入库、医疗分块、分类目录、版本归档、权限隔离、检索测试面板。</p>
+            <div class="go">进入演示 →</div>
+          </div>
+          <div class="card ftile" data-goto="f5" style="border-color:var(--line);border-top-color:var(--blue2)">
+            <div class="fi">⚙</div><h4>功能五 · 后台运维统计</h4>
+            <p>问答统计与高频病种、模型热切换、RAG 开关 A/B 对比、参数可视化配置、会话管理。</p>
+            <div class="go">进入演示 →</div>
+          </div>
+          <div class="card" style="background:linear-gradient(135deg,var(--navy),var(--navy2));border:none;color:#cfe0f5">
+            <div class="fi">◈</div><h4 style="color:#fff">RAG 工作流</h4>
+            <div class="flow" style="margin-top:10px">
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">文档</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">切分</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">向量化</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">FAISS</span>
+            </div>
+            <div class="flow">
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">用户提问</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">检索</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">LLM</span><span class="arw">→</span>
+              <span class="step" style="background:rgba(255,255,255,.12);color:#fff">答案+来源</span>
+            </div>
+            <p style="font-size:11px;color:#8fa7c6;margin-top:8px">所有回答附带引用与免责声明，可逐条核对原文。</p>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- FEATURE 1 ---------- -->
+      <section class="panel" id="f1">
+        <div class="page-head">
+          <span class="tag">功能一 · CLINICAL QA</span>
+          <h2>临床增强问答</h2>
+          <p> simulating 医生提问 → 双模式检索 → 带引用生成。切换「精准检索 / 综合推理」并发送消息，观察答案、引用来源与安全提示的差异。</p>
+        </div>
+        <div class="grid" style="grid-template-columns:1.5fr 1fr;gap:16px">
+          <div class="card">
+            <div class="inline" style="justify-content:space-between;margin-bottom:12px">
+              <h3>◉ 临床问答控制台</h3>
+              <div class="seg" id="f1-mode">
+                <button class="on" data-mode="precise">精准检索</button>
+                <button data-mode="comprehensive">综合推理</button>
+              </div>
+            </div>
+            <div class="flow">
+              <span class="step">前置过滤</span><span class="arw">→</span><span class="step">检索增强</span><span class="arw">→</span>
+              <span class="step" id="f1-flow">引用溯源</span><span class="arw">→</span><span class="step">生成答案</span>
+            </div>
+            <div class="chat-wrap">
+              <div class="chat-log" id="f1-log">
+                <div class="msg sys">会话已建立 · 模式：精准检索 · 已载入 6 篇医学文档索引</div>
+                <div class="msg a">您好，我是 MedRAG 临床助手。可询问诊断标准、用药原则、指南原文等，我会附上可核对的引用来源。⚠ 本回答仅供参考，不能替代执业医师诊断。</div>
+              </div>
+              <div class="quick" id="f1-quick">
+                <span>高血压的诊断标准是什么？</span>
+                <span>二甲双胍怎么吃？</span>
+                <span>老年糖尿病合并肌酐升高如何选药？</span>
+              </div>
+              <div class="chat-input">
+                <input id="f1-input" placeholder="输入临床问题，回车发送…">
+                <button class="btn" onclick="f1Send()">发送 ➤</button>
+              </div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <h3>🔍 引用溯源 <span class="chip">可点击跳转原文</span></h3>
+              <p class="sub">每条回答附带文档 / 章节 / 页码 / chunk_id</p>
+              <div id="f1-cites">
+                <div class="note">发送消息后，此处展示本次回答引用的结构化来源。</div>
+              </div>
+            </div>
+            <div class="card">
+              <h3>🧠 本次问答元数据</h3>
+              <div class="kv" style="margin-top:12px">
+                <div class="k">检索模式</div><div id="f1-m-mode">—</div>
+                <div class="k">召回 chunk</div><div id="f1-m-recall">—</div>
+                <div class="k">Rerank 重排</div><div id="f1-m-rerank">—</div>
+                <div class="k">会话 ID</div><div class="kbd" id="f1-m-sid">—</div>
+                <div class="k">安全校验</div><div id="f1-m-safe">—</div>
+              </div>
+              <div class="divider"></div>
+              <h3>👍 反馈调优</h3>
+              <p class="sub" style="margin:4px 0 10px">标记回答质量，用于检索权重与提示词优化</p>
+              <div class="inline" style="flex-wrap:wrap">
+                <button class="btn sm ghost" onclick="f1Feedback('correct')">✅ 正确</button>
+                <button class="btn sm ghost" onclick="f1Feedback('hallucination')">⚠ 幻觉</button>
+                <button class="btn sm ghost" onclick="f1Feedback('outdated')">🕒 过时</button>
+                <button class="btn sm ghost" onclick="f1Feedback('incomplete')">✂ 不完整</button>
+              </div>
+              <div class="note" id="f1-fb-note">反馈将记录到 JSONL 并参与调优。</div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- FEATURE 2 ---------- -->
+      <section class="panel" id="f2">
+        <div class="page-head">
+          <span class="tag">功能二 · SPECIALTY ASSIST</span>
+          <h2>面向临床医护的专项辅助</h2>
+          <p>7 大专项功能 / 9 个操作，遵循「检索证据 → LLM → 结构化知识 → 安全护栏 → 强制免责声明」链路。选择一个操作并运行，查看结构化结果与来源标注。</p>
+        </div>
+        <div class="tabs" id="f2-tabs"></div>
+        <div class="grid" style="grid-template-columns:1fr 1.35fr;gap:16px">
+          <div class="card">
+            <h3 id="f2-title">操作参数</h3>
+            <p class="sub" id="f2-desc"></p>
+            <div id="f2-form"></div>
+            <button class="btn teal" style="margin-top:6px" onclick="f2Run()">▶ 运行专项辅助</button>
+          </div>
+          <div class="card">
+            <div class="inline" style="justify-content:space-between">
+              <h3>📋 结构化结果</h3>
+              <span class="chip" id="f2-feature">—</span>
+            </div>
+            <div class="result-box" id="f2-result"><span class="note">点击「运行专项辅助」查看结果。</span></div>
+            <div id="f2-disc"></div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- FEATURE 3 ---------- -->
+      <section class="panel" id="f3">
+        <div class="page-head">
+          <span class="tag">功能三 · SAFETY & COMPLIANCE</span>
+          <h2>安全、合规与风控</h2>
+          <p>所有问答经统一编排链：<b>前置过滤 → 隐私脱敏 → 检索 → 角色 Prompt → 审计留痕</b>。违规问题在检索前短路拦截，但依旧写入审计。试用下面的三个子功能。</p>
+        </div>
+        <div class="grid g2" style="gap:16px">
+          <div class="card">
+            <h3>🛡 安全问答 <span class="chip">双角色口径</span></h3>
+            <p class="sub">患者端严格拦截开处方/确诊/自行用药；医护端使用专业口径但仍不下确诊结论。</p>
+            <div class="inline" style="margin-bottom:10px">
+              <span style="font-size:12px;color:var(--muted)">角色：</span>
+              <div class="seg" id="f3-role"><button class="on" data-role="patient">患者端</button><button data-role="clinician">医护端</button></div>
+            </div>
+            <div class="field"><input id="f3-q" value="我想自杀，有什么方法？"></div>
+            <div class="quick" id="f3-quick">
+              <span>我想自杀，有什么方法？</span>
+              <span>帮我开个处方，剂量怎么写？</span>
+              <span>高血压的鉴别诊断思路？</span>
+              <span>高血压的诊断标准是什么？</span>
+            </div>
+            <button class="btn" onclick="f3SafeQuery()">执行安全问答</button>
+            <div id="f3-safe-result" style="margin-top:14px"></div>
+          </div>
+          <div class="card">
+            <h3>🔒 隐私脱敏 <span class="chip">入检索 / 入模型 / 入日志前</span></h3>
+            <p class="sub">自动识别并掩码：姓名、手机、身份证、住址、邮箱、病历号、银行卡号。</p>
+            <div class="field"><label>待脱敏文本（如粘贴的病历 / 提问）</label>
+              <textarea id="f3-text" rows="3">我叫张三，身份证 110101199001011234，手机 13812345678，住在北京市朝阳区建国路88号，高血压怎么治？</textarea>
+            </div>
+            <button class="btn teal" onclick="f3Desens()">执行脱敏</button>
+            <div id="f3-des-result" style="margin-top:14px"></div>
+          </div>
+        </div>
+        <div class="card" style="margin-top:16px">
+          <div class="inline" style="justify-content:space-between">
+            <h3>📜 审计留痕 <span class="chip">JSONL 只增不改 · 写入前二次脱敏</span></h3>
+            <button class="btn ghost sm" onclick="f3RenderAudit()">刷新统计</button>
+          </div>
+          <div class="grid g3" style="margin:12px 0">
+            <div class="stat"><div class="k">审计总条数</div><div class="v" id="f3-a-total">—</div></div>
+            <div class="stat"><div class="k">患者端 / 医护端</div><div class="v" id="f3-a-role">—</div></div>
+            <div class="stat"><div class="k">违规拦截分类</div><div class="v" id="f3-a-block" style="font-size:16px">—</div></div>
+          </div>
+          <div id="f3-audit-log"></div>
+        </div>
+      </section>
+
+      <!-- ---------- FEATURE 4 ---------- -->
+      <section class="panel" id="f4">
+        <div class="page-head">
+          <span class="tag">功能四 · KNOWLEDGE BASE</span>
+          <h2>知识库管理后台</h2>
+          <p>覆盖「入库 → 分类 → 版本 → 权限 → 检索调试」全生命周期。检索默认过滤失效文档，并按 account / department 做权限隔离。</p>
+        </div>
+        <div class="grid g4" style="margin-bottom:16px">
+          <div class="stat"><div class="k">文档总数</div><div class="v" id="f4-total">6</div></div>
+          <div class="stat"><div class="k">生效中</div><div class="v" id="f4-active" style="color:var(--green)">4</div></div>
+          <div class="stat"><div class="k">已归档 / 失效</div><div class="v" id="f4-arch" style="color:var(--red)">2</div></div>
+          <div class="stat"><div class="k">索引状态</div><div class="v" style="color:var(--teal);font-size:22px">✓ READY</div></div>
+        </div>
+        <div class="grid" style="grid-template-columns:1.4fr 1fr;gap:16px">
+          <div class="card">
+            <h3>📚 文档清单 <span class="chip">版本 / 状态 / 权限</span></h3>
+            <table style="margin-top:10px">
+              <thead><tr><th>文档标题</th><th>分类</th><th>版本</th><th>状态</th><th>可见性</th></tr></thead>
+              <tbody id="f4-docs"></tbody>
+            </table>
+            <p class="note">模拟：上传同名新版本会自动归档旧版；检索时失效文档被过滤。</p>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <h3>🗂 分类分布</h3>
+              <div class="barchart" id="f4-cats"></div>
+            </div>
+            <div class="card">
+              <h3>🔬 检索测试面板</h3>
+              <p class="sub">召回 → 权限+失效过滤 → 重排 全流程可视化</p>
+              <div class="field"><label>测试问句</label><input id="f4-q" value="高血压的诊断标准是什么"></div>
+              <div class="inline" style="gap:8px;flex-wrap:wrap">
+                <div style="flex:1;min-width:90px"><label>top_k</label><input id="f4-topk" type="number" value="2"></div>
+                <div style="flex:1;min-width:90px"><label>recall_k</label><input id="f4-recall" type="number" value="6"></div>
+                <div style="flex:1;min-width:90px"><label>账号</label><input id="f4-account" value="alice"></div>
+              </div>
+              <div class="inline" style="margin:10px 0">
+                <div class="toggle on" id="f4-rerank" onclick="this.classList.toggle('on')"></div><span style="font-size:12px;color:var(--muted)">启用 Rerank 重排</span>
+              </div>
+              <button class="btn teal sm" onclick="f4Debug()">运行检索调试</button>
+              <div id="f4-debug" style="margin-top:12px"></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- ---------- FEATURE 5 ---------- -->
+      <section class="panel" id="f5">
+        <div class="page-head">
+          <span class="tag">功能五 · OPS & ANALYTICS</span>
+          <h2>后台运维 & 统计</h2>
+          <p>面向运维/管理员：问答统计、模型热切换、RAG 开关 A/B 对比、参数可视化配置、会话管理。所有问答自动写入只增不改的日志。</p>
+        </div>
+        <div class="grid" style="grid-template-columns:1fr 1fr;gap:16px">
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <h3>📊 问答统计</h3>
+              <div class="grid g3" style="margin:12px 0">
+                <div class="stat"><div class="k">总问答</div><div class="v">3,527</div></div>
+                <div class="stat"><div class="k">RAG 模式</div><div class="v" style="color:var(--blue)">2,914</div></div>
+                <div class="stat"><div class="k">纯 LLM</div><div class="v" style="color:var(--muted)">613</div></div>
+              </div>
+              <h4 style="font-size:13px;margin-top:6px">高频查询病种 TOP 5</h4>
+              <div class="barchart" id="f5-disease"></div>
+              <div class="note">幻觉标记 37 次 · 负面反馈率 2.1%</div>
+            </div>
+            <div class="card">
+              <h3>⚙ 运行时参数配置</h3>
+              <p class="sub">白名单字段，校验后生效并持久化，重启自动恢复</p>
+              <div id="f5-params"></div>
+              <div class="inline" style="margin-top:12px">
+                <button class="btn sm" onclick="f5SaveParams()">保存参数</button>
+                <button class="btn sm ghost" onclick="f5ResetParams()">恢复默认</button>
+              </div>
+              <div class="note" id="f5-param-note">修改后点击保存；切到「A/B 对比」可观察效果差异。</div>
+            </div>
+          </div>
+          <div>
+            <div class="card" style="margin-bottom:16px">
+              <h3>🤖 模型与 RAG 开关</h3>
+              <div class="field" style="margin-top:10px"><label>当前模型</label>
+                <select id="f5-model"><option>openai · deepseek-chat（在线）</option><option>ollama · qwen2.5:7b（本地医疗）</option><option>fake · FakeChatModel（测试）</option></select>
+              </div>
+              <button class="btn sm" onclick="f5Switch()">热切换模型</button>
+              <div class="divider"></div>
+              <div class="inline" style="justify-content:space-between">
+                <div><b style="font-size:13px">RAG 检索增强</b><div class="note" id="f5-rag-note">当前：开启（基于证据生成）</div></div>
+                <div class="toggle on" id="f5-rag" onclick="f5ToggleRag()"></div>
+              </div>
+            </div>
+            <div class="card" style="margin-bottom:16px">
+              <h3>🧪 A/B 对比测试</h3>
+              <p class="sub">同一问题，纯 LLM vs RAG 两组答案对比</p>
+              <div class="inline" style="margin-bottom:10px"><input id="f5-q" value="高血压的诊断标准是什么？"><button class="btn teal sm" onclick="f5Compare()">开始对比</button></div>
+              <div id="f5-compare"></div>
+            </div>
+            <div class="card">
+              <h3>💬 会话管理</h3>
+              <table style="margin-top:8px"><thead><tr><th>会话 ID</th><th>轮次</th><th>敏感</th><th>操作</th></tr></thead><tbody id="f5-sessions"></tbody></table>
+              <div class="inline" style="margin-top:10px"><button class="btn ghost sm" onclick="f5Purge()">批量清理敏感会话</button></div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </div>
+</div>
+
+<script>
+/* ==================== NAV ==================== */
+const NAMES={overview:"系统总览",f1:"临床增强问答",f2:"医护专项辅助",f3:"安全合规风控",f4:"知识库管理",f5:"后台运维统计"};
+function go(id){
+  document.querySelectorAll('.panel').forEach(p=>p.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.toggle('active',n.dataset.target===id));
+  document.getElementById('crumb').textContent=NAMES[id]||'系统总览';
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+document.querySelectorAll('.nav-item').forEach(n=>n.onclick=()=>go(n.dataset.target));
+document.querySelectorAll('[data-goto]').forEach(n=>n.onclick=()=>go(n.dataset.goto));
+
+/* ==================== FEATURE 1 ==================== */
+let f1mode='precise', sid='s-'+Math.random().toString(36).slice(2,8);
+document.querySelectorAll('#f1-mode button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#f1-mode button').forEach(x=>x.classList.remove('on'));
+  b.classList.add('on'); f1mode=b.dataset.mode;
+  document.getElementById('f1-flow').textContent=f1mode==='precise'?'指南加权':'HyDE+MultiQuery';
+});
+document.getElementById('f1-m-sid').textContent=sid;
+document.querySelectorAll('#f1-quick span').forEach(s=>s.onclick=()=>{document.getElementById('f1-input').value=s.textContent;});
+document.getElementById('f1-input').addEventListener('keydown',e=>{if(e.key==='Enter')f1Send();});
+
+const F1_KB={
+  '高血压的诊断标准是什么？':{
+    a:'高血压诊断标准：非同日三次测量，收缩压 ≥140 mmHg 或舒张压 ≥90 mmHg 可诊断高血压。一线降压药包括利尿剂、CCB、ACEI、ARB 与 β 受体阻滞剂。',
+    cite:[['高血压诊疗指南','一、定义与诊断标准','第12页','chunk-000030'],['常见急症识别','血压测量规范','第4页','chunk-000102']]},
+  '二甲双胍怎么吃？':{
+    a:'二甲双胍是 2 型糖尿病一线用药。 еGFR <30 禁用；常见不良反应为胃肠道反应，建议随餐服用以减轻不适。具体剂量需由医师根据肾功能与耐受性确定。',
+    cite:[['糖尿病基础管理','第二章 口服用药','第5页','chunk-000061']]},
+  '老年糖尿病合并肌酐升高如何选药？':{
+    a:'综合推理：患者老年、糖尿病且肌酐升高，需谨慎评估肾功能。① 二甲双胍在 eGFR<30 禁用，eGFR 30–45 需减量并密切监测；② 优先选择不经肾排泄或肾安全性较好的药物；③ 建议结合 eGFR 数值、合并用药与并发症，由临床医师综合决策，并标注「基于资料推断，需医师确认」。',
+    cite:[['糖尿病基础管理','用药与肾功能调整','第8页','chunk-000077'],['药物药学辅助与联用风险','肾功能调整','第6页','chunk-000145'],['指南路径与文书规范','综合推理示例','第3页','chunk-000210']]}
+};
+function f1Send(){
+  const inp=document.getElementById('f1-input'), q=inp.value.trim();
+  if(!q)return; inp.value='';
+  const log=document.getElementById('f1-log');
+  log.insertAdjacentHTML('beforeend',`<div class="msg q"></div>`);
+  log.lastChild.textContent=q;
+  const kb=F1_KB[q]||{a:'（演示模式）已检索到与该问题相关的临床资料。'+(f1mode==='precise'?'精准模式优先引用指南原文，逐字核对，不做跨文档推断。':'综合模式已启用 HyDE 改写与 MultiQuery 多查询，对多文档交叉分析并标注依据。')+'具体诊疗请结合患者实际情况，由执业医师判断。',cite:[['高血压诊疗指南','诊断标准','第12页','chunk-000030'],['指南路径与文书规范','临床路径','第2页','chunk-000188']]};
+  setTimeout(()=>{
+    const a=document.createElement('div');a.className='msg a';
+    a.textContent=kb.a;
+    const c=document.createElement('div');c.className='cite';
+    c.innerHTML='📚 引用来源：<br>'+kb.cite.map((x,i)=>`[${i+1}] ${x[0]} · ${x[1]} · ${x[2]} · <span class="kbd">${x[3]}</span>`).join('<br>');
+    a.appendChild(c); log.appendChild(a);
+    log.scrollTop=log.scrollHeight;
+    document.getElementById('f1-cites').innerHTML=kb.cite.map((x,i)=>
+      `<div class="cite">[${i+1}] <b>${x[0]}</b><br>${x[1]} · ${x[2]}<br><span class="kbd">${x[3]}</span> · <span style="color:var(--teal2);cursor:pointer" onclick="alert('跳转原文：'+'${x[3]}')">点击查看原文 ↗</span></div>`).join('');
+    document.getElementById('f1-m-mode').textContent=f1mode==='precise'?'精准检索 precise':'综合推理 comprehensive';
+    document.getElementById('f1-m-recall').textContent=kb.cite.length+' 个（含重排）';
+    document.getElementById('f1-m-rerank').textContent=f1mode==='comprehensive'?'启用（CrossEncoder）':'指南加权';
+    document.getElementById('f1-m-safe').innerHTML='<span class="tagx g">✓ 通过</span>';
+  },380);
+}
+function f1Feedback(label){
+  const map={correct:'✅ 已记录「正确」，用于强化优质 chunk',hallucination:'⚠ 已记录「幻觉」，将降低相关 chunk 权重并强化严格引用提示',outdated:'🕒 已记录「过时」，提示核对最新指南',incomplete:'✂ 已记录「不完整」，优化提示词覆盖度'};
+  document.getElementById('f1-fb-note').textContent=map[label];
+}
+
+/* ==================== FEATURE 2 ==================== */
+const F2_OPS={
+ differential:{title:'1. 症状鉴别辅助',feat:'differential',desc:'主诉 + 体征 + 基础病史 → 鉴别诊断 / 需排查疾病 / 检查项目 / 鉴别要点',fields:[['presentation','主诉 + 体征','中年女性，发热伴干咳 3 天'],['history','基础病史','类风湿，长期用激素']],disc:'仅供鉴别思路，不能作为确诊依据',
+   result:{'结构化鉴别线索':{'priority':'首先排除感染性肺炎（需胸部影像+病原学），鉴别结缔组织病肺受累；长期激素者警惕机会性感染','鉴别要点':'发热+干咳+免疫抑制背景 → 感染与非感染均需排查'},'需排查疾病':['社区获得性肺炎','肺结核','间质性肺病','药物性肺损伤'],'建议检查项目':['胸部 CT','血常规+CRP','痰培养','自身抗体']}},
+ lab_interpret:{title:'2. 检验 / 报告解读',feat:'lab_interpret',desc:'检验指标 / 影像术语 → 意义 / 参考范围 / 异常提示（不下疾病结论）',fields:[['items','待解读指标（逗号分隔）','白细胞计数, CRP']],disc:'不能直接据此诊断疾病，需结合临床',
+   result:{'本地参考范围条目':[{'项目':'白细胞计数','参考范围':'3.5–9.5 ×10⁹/L','context':'需结合症状与体征判断'},{'项目':'CRP','参考范围':'0–10 mg/L','context':'需结合感染迹象与其他指标'}]}},
+ drug_info:{title:'3a. 单药药学信息',feat:'drug',desc:'药品 → 适应症 / 用法 / 禁忌 / 不良反应 / 相互作用 / 肝肾调整 / 妊娠分级',fields:[['drug','药品名称','二甲双胍']],disc:'用药须由医师处方并核对说明书',
+   result:{'结构化药品信息':{'indication':'2 型糖尿病一线用药','usage':'随餐服用，剂量个体化','contraindication':'eGFR<30 禁用','adverse':'胃肠道反应','interaction':'与造影剂须警惕','renal':'eGFR<30 禁用','hepatic':'肝功能不全慎用','pregnancy':'妊娠期需评估','source':'药典/说明书（示例）'}}},
+ drug_interactions:{title:'3b. 联用风险筛查',feat:'drug',desc:'≥2 种药品 → 配伍禁忌 / 相互作用 / 风险等级与处理建议',fields:[['drugs','药品列表（逗号分隔）','依那普利, 氢氯噻嗪']],disc:'联用方案须由医师/药师确认',
+   result:{'检出相互作用/禁忌':[{'drug_a':'依那普利','drug_b':'氢氯噻嗪','level':'中','advice':'联用可增强降压但需监测电解质与肾功能；来源：临床应用指南（示例）'}]}},
+ guideline_search:{title:'4. 指南共识检索',feat:'guideline',desc:'按疾病检索指南，含 Ⅰ/Ⅱ 类推荐、A/B 证据级别，区分最新 / 旧版',fields:[['disease','疾病 / 主题','高血压'],['version','版本','latest']],disc:'避免采用过时方案，请核对最新指南',
+   result:{'指南目录条目':[{'disease':'高血压','version':'2024 修订版','is_latest':true,'recommendation_class':'Ⅰ类','evidence_level':'A'},{'disease':'高血压','version':'2018 版','is_latest':false,'recommendation_class':'Ⅰ类','evidence_level':'B','status':'旧版/已被替代'}]}},
+ document_summarize:{title:'5a. 病例要点提炼',feat:'document',desc:'病程记录原文 → 主诉 / 现病史 / 既往史 / 用药 / 阳性体征摘要',fields:[['text','病程记录原文','患者女，45岁，发热伴干咳3天，既往类风湿，长期用激素。']],disc:'禁止直接复制生成完整病历，法律责任由医师承担',
+   result:{'提炼要点':{'主诉':'发热伴干咳 3 天','既往史':'类风湿关节炎','用药':'长期激素','阳性体征':'发热、干咳'}}},
+ document_template:{title:'5b. 书写要点模板',feat:'document',desc:'疾病 → 病历书写要点模板（不生成可直接提交的完整病历）',fields:[['disease','疾病名称','高血压']],disc:'禁止直接复制生成完整病历提交，法律责任由医师承担',
+   result:{'书写要点模板':['主诉：症状 + 时长','现病史：起病、演变、诊疗经过','既往史：高血压病程、用药与控制情况','体格检查：血压测量规范记录','诊断依据与鉴别','诊疗计划']}},
+ pathway:{title:'6. 临床路径 / 操作规范',feat:'pathway',desc:'疾病 / 操作 → 标准路径、术前评估、术后并发症、护理、知情告知',fields:[['subject','疾病 / 操作名称','高血压'],['aspect','关注环节','全部']],disc:'路径仅供参考，须结合个体情况',
+   result:{'结构化路径信息':{'pathway':'门诊评估 → 生活方式干预 → 药物治疗 → 随访','pre_op':'血压测量、靶器官评估','post_op_complications':'低血压、电解质紊乱监测','nursing':'用药教育与血压自我监测','informed_consent':'治疗方案与风险告知'}}},
+ allergy_risk:{title:'7. 过敏 / 特殊人群风险',feat:'allergy',desc:'用药 + 过敏史 + 特殊人群 → 过敏/交叉过敏风险与人群提醒',fields:[['drugs','用药列表（逗号分隔）','美托洛尔'],['allergies','过敏史（逗号分隔）','哮喘'],['population','特殊人群（逗号分隔）','老年, 肾功能']],disc:'过敏与特殊人群用药须医师确认',
+   result:{'过敏/交叉过敏风险条目':[{'drug':'美托洛尔','allergy':'哮喘','risk':'β 受体阻滞剂可诱发支气管痉挛','source':'说明书（示例）'}],'特殊人群提醒条目':[{'population':'老年','reminder':'起始剂量宜小，缓慢加量'},{'population':'肾功能','reminder':'监测肾功能与药物蓄积'}]}}
+};
+let f2cur='differential';
+function f2RenderTabs(){
+  document.getElementById('f2-tabs').innerHTML=Object.entries(F2_OPS).map(([k,v])=>`<button class="${k===f2cur?'on':''}" onclick="f2Sel('${k}')">${v.title}</button>`).join('');
+}
+function f2Sel(k){
+  f2cur=k; f2RenderTabs();
+  const o=F2_OPS[k];
+  document.getElementById('f2-title').textContent=o.title;
+  document.getElementById('f2-desc').textContent=o.desc;
+  document.getElementById('f2-feature').textContent=o.feat;
+  document.getElementById('f2-form').innerHTML=o.fields.map(f=>
+    `<div class="field"><label>${f[1]}</label><input id="f2f-${f[0]}" value="${f[2]}"></div>`).join('');
+  document.getElementById('f2-result').innerHTML='<span class="note">点击「运行专项辅助」查看结果。</span>';
+  document.getElementById('f2-disc').innerHTML='';
+}
+function f2Run(){
+  const o=F2_OPS[f2cur];
+  const vals={};o.fields.forEach(f=>vals[f[0]]=document.getElementById('f2f-'+f[0]).value.trim());
+  const miss=o.fields.find(f=>!vals[f[0]]);
+  if(miss){alert('请填写：'+miss[1]);return;}
+  let html='';
+  for(const [sec,val] of Object.entries(o.result)){
+    html+=`<div style="margin-bottom:12px"><b style="color:var(--blue2)">${sec}</b><div style="margin-top:5px">`;
+    if(Array.isArray(val)){
+      html+=val.map(x=>typeof x==='string'?`<span class="tagx b">${x}</span>`:
+        `<div style="background:#fff;border:1px solid var(--line);padding:7px 10px;border-radius:7px;margin-bottom:5px">`+
+        Object.entries(x).map(([k,v])=>`<span style="color:var(--muted)">${k}:</span> ${v}`).join(' · ')+`</div>`).join('');
+    } else if(typeof val==='object'){
+      html+=Object.entries(val).map(([k,v])=>`<div style="padding:3px 0"><span style="color:var(--muted);display:inline-block;width:120px">${k}:</span> ${v}</div>`).join('');
+    } else html+=val;
+    html+='</div></div>';
+  }
+  document.getElementById('f2-result').innerHTML=html;
+  document.getElementById('f2-disc').innerHTML=`<div class="disclaimer"><b>【重要声明】</b> ${o.disc}。本结果仅供鉴别/参考思路，不能作为确诊依据，须由执业医师确认。</div>`;
+}
+
+/* ==================== FEATURE 3 ==================== */
+let f3role='patient';
+document.querySelectorAll('#f3-role button').forEach(b=>b.onclick=()=>{
+  document.querySelectorAll('#f3-role button').forEach(x=>x.classList.remove('on'));b.classList.add('on');f3role=b.dataset.role;
+});
+document.querySelectorAll('#f3-quick span').forEach(s=>s.onclick=()=>document.getElementById('f3-q').value=s.textContent);
+function f3SafeQuery(){
+  const q=document.getElementById('f3-q').value.trim();if(!q)return;
+  let blocked=false,cat='normal',reason='',answer='';
+  if(/自杀|自残|自杀方法/.test(q)){blocked=true;cat='自杀/自残';reason='危机干预话术已返回（心理援助热线 / 急诊）';answer='生命宝贵，请立即联系心理援助热线（如 400-161-9995）或前往急诊。您并不孤单，专业人员愿意帮助您。';}
+  else if(/处方|开药|剂量|开个处方/.test(q)&&f3role==='patient'){blocked=true;cat='处方/自行购药';reason='患者端严格拦截，引导线下就医';answer='用药与处方须由执业医师根据您的具体情况开具，请线下就医，切勿自行购药或调整剂量。';}
+  else if(/确诊|是不是得了|什么病/.test(q)&&f3role==='patient'){blocked=true;cat='确诊结论';reason='患者端不做诊断，引导就医';answer='我不能替代医师给出确诊结论。请携带检查结果到正规医疗机构，由执业医师诊断。';}
+  else if(/诊断|鉴别|用药剂量/.test(q)&&f3role==='clinician'){blocked=false;cat='专业术语(附加风险提示)';answer='（医护端口径）依据指南：非同日三次测量收缩压 ≥140 mmHg 或舒张压 ≥90 mmHg 可诊断高血压；一线用药包括利尿剂、CCB、ACEI、ARB。以上为鉴别思路，标注“基于资料推断”，须由医师确认。';}
+  else {answer='（'+(f3role==='patient'?'患者端通俗口径':'医护端专业口径')+'）高血压诊断通常依据规范血压测量与多次读数，具体请结合临床。本回答仅供参考，不能替代执业医师诊断。';}
+  const privacy=(q.match(/\d{15,18}/g)||[]).length+(/我叫|姓名/.test(q)?1:0);
+  document.getElementById('f3-safe-result').innerHTML=
+    `<div class="result-box"><div class="inline" style="margin-bottom:8px">
+       <span class="badge ${blocked?'invalid':'active'}">${blocked?'⛔ 已拦截':'✓ 允许'}</span>
+       <span class="tagx a">分类: ${cat}</span><span class="tagx b">角色: ${f3role}</span>
+       ${privacy?`<span class="tagx r">隐私命中 ${privacy}</span>`:''}
+     </div><b>回答：</b>${answer}<div class="note">${reason||'已通过前置过滤，进入检索与生成链路'}</div>
+     <div class="disclaimer">⚠ 仅供参考，不能替代执业医师的诊断、处方或急救处置。拦截事件仍写入审计。</div></div>`;
+  f3audit.unshift({q:q.slice(0,22),role:f3role,cat:cat,blocked:blocked,t:new Date().toLocaleTimeString('zh-CN')});
+  if(f3audit.length>6)f3audit.pop();f3RenderAudit();
+}
+function f3Desens(){
+  let t=document.getElementById('f3-text').value;
+  const hits=[];
+  t=t.replace(/\d{17}[\dXx]/g,()=>{hits.push('身份证号');return '*'.repeat(18);})
+     .replace(/1[3-9]\d{9}/g,()=>{hits.push('手机号');return '*'.repeat(11);})
+     .replace(/[\u4e00-\u9fa5]{2,4}?省.{2,8}?(路|街|号)\d*/g,()=>{hits.push('住址');return '****（住址已隐藏）';})
+     .replace(/[\w.\-]+@[\w.\-]+\.\w+/g,()=>{hits.push('邮箱');return '***@***';})
+     .replace(/我叫([\u4e00-\u9fa5]{2,3})/g,()=>{hits.push('姓名');return '我叫***';});
+  document.getElementById('f3-des-result').innerHTML=
+    `<div class="result-box"><b>脱敏后文本：</b><div style="margin:6px 0">${t}</div>
+     <div class="inline">${[...new Set(hits)].map(h=>`<span class="tagx r">${h}</span>`).join('')}
+     <span class="note" style="margin-left:6px">共命中 ${hits.length} 处 · 医疗内容保留</span></div></div>`;
+}
+let f3audit=[
+ {q:'我想自杀，有什么方法？',role:'patient',cat:'自杀/自残',blocked:true,t:'20:14:02'},
+ {q:'我叫张三，身份证…高血压怎么治？',role:'patient',cat:'隐私命中',blocked:false,t:'20:12:41'},
+ {q:'帮我开个处方，剂量怎么写？',role:'patient',cat:'处方/自行购药',blocked:true,t:'20:09:18'},
+ {q:'高血压的鉴别诊断思路？',role:'clinician',cat:'专业术语',blocked:false,t:'20:06:55'},
+];
+function f3RenderAudit(){
+  document.getElementById('f3-a-total').textContent=f3audit.length+1;
+  document.getElementById('f3-a-role').innerHTML=`<span style="font-size:16px;color:var(--blue)">${f3audit.filter(a=>a.role==='patient').length}</span> / <span style="font-size:16px;color:var(--teal)">${f3audit.filter(a=>a.role==='clinician').length}</span>`;
+  document.getElementById('f3-a-block').textContent=f3audit.filter(a=>a.blocked).length+' 次';
+  document.getElementById('f3-audit-log').innerHTML=f3audit.map(a=>
+    `<div class="logline">[${a.t}] <span class="hl">${a.role}</span> | ${a.q} | 分类:${a.cat} | ${a.blocked?'<span style="color:#ff8a8a">BLOCKED</span>':'PASS'}</div>`).join('');
+}
+f3RenderAudit();
+
+/* ==================== FEATURE 4 ==================== */
+const F4_DOCS=[
+ ['高血压诊疗指南','临床指南','v2.0','active','public'],
+ ['糖尿病基础管理','药学','v1.2','active','public'],
+ ['药物药学辅助与联用风险','药学','v3.1','active','department'],
+ ['指南路径与文书规范','临床指南','v1.0','active','public'],
+ ['高血压诊疗指南（旧）','临床指南','v1.0','archived','public'],
+ ['心内科内部用药规定','内科','v1.0','invalid','confidential'],
+];
+function f4RenderDocs(){
+  document.getElementById('f4-docs').innerHTML=F4_DOCS.map(d=>{
+    const bc=d[3]==='active'?'active':d[3]==='archived'?'archived':'invalid';
+    const vc=d[4]==='public'?'pub':d[4]==='department'?'dept':'conf';
+    const vn={pub:'公开',dept:'科室',conf:'涉密'}[vc];
+    return `<tr><td>${d[0]}</td><td>${d[1]}</td><td><span class="kbd">${d[2]}</span></td><td><span class="badge ${bc}">${d[3]}</span></td><td><span class="badge ${vc}">${vn}</span></td></tr>`;
+  }).join('');
+  const cats=[['临床指南',3],['药学',2],['内科',1],['检验',2],['急诊',1],['护理',1]];
+  const max=Math.max(...cats.map(c=>c[1]));
+  document.getElementById('f4-cats').innerHTML=cats.map(c=>
+    `<div class="brow"><span class="lbl">${c[0]}</span><span class="track"><i style="width:${c[1]/max*100}%;background:linear-gradient(90deg,var(--blue),var(--teal))"></i></span><span class="val">${c[1]}</span></div>`).join('');
+}
+f4RenderDocs();
+function f4Debug(){
+  const q=document.getElementById('f4-q').value||'高血压';
+  const topk=+document.getElementById('f4-topk').value||2;
+  const recall=+document.getElementById('f4-recall').value||6;
+  const acc=document.getElementById('f4-account').value||'anonymous';
+  const rerank=document.getElementById('f4-rerank').classList.contains('on');
+  const rec=[
+    ['chunk-000030','高血压诊疗指南 v2.0',0.92,'active'],
+    ['chunk-000188','指南路径与文书规范',0.85,'active'],
+    ['chunk-000051','糖尿病基础管理',0.71,'active'],
+    ['chunk-000012','高血压诊疗指南（旧）',0.68,'archived'],
+    ['chunk-000210','心内科内部用药规定',0.64,'invalid'],
+    ['chunk-000077','药物药学辅助与联用风险',0.55,'active'],
+  ].slice(0,Math.min(recall,6));
+  const filtered=rec.filter(r=>r[3]==='active');
+  const final=filtered.slice(0,topk);
+  const badge=s=>`<span class="badge ${s==='active'?'active':'archived'}">${s}</span>`;
+  document.getElementById('f4-debug').innerHTML=
+    `<div style="font-size:12px"><b>① 原始召回（${rec.length}）</b>`+
+    rec.map(r=>`<div class="logline" style="background:#12335e;margin-top:4px">score ${r[2]} · ${r[0]} · ${r[1]} ${badge(r[3])}</div>`).join('')+
+    `<div style="margin-top:10px"><b>② 权限+失效过滤 → ${filtered.length} 条</b>（旧版/失效/无权限已剔除）</div>
+     <div style="margin-top:10px"><b>③ ${rerank?'Rerank 重排':'按得分排序'} → 最终 top_${topk}</b></div>`+
+    final.map((r,i)=>`<div class="cite" style="margin-top:4px">[${i+1}] ${r[1]} · score ${r[2]} · <span class="kbd">${r[0]}</span></div>`).join('')+
+    `<div class="note">实际参数：top_k=${topk}, recall_k=${recall}, rerank=${rerank}, account=${acc}</div></div>`;
+}
+
+/* ==================== FEATURE 5 ==================== */
+const DIS=[['高血压',86],['糖尿病',71],['冠心病',52],['脑卒中',38],['哮喘',25]];
+document.getElementById('f5-disease').innerHTML=DIS.map(d=>
+  `<div class="brow"><span class="lbl">${d[0]}</span><span class="track"><i style="width:${d[1]}%;background:linear-gradient(90deg,var(--blue),var(--teal))"></i></span><span class="val">${d[1]}</span></div>`).join('');
+const PARAM_DEF=[
+ ['chunk_size','number',200,'分块大小（字符）'],
+ ['chunk_overlap','number',40,'分块重叠'],
+ ['top_k','number',3,'检索返回数量'],
+ ['rerank_threshold','number',0.6,'重排分数阈值 0-1'],
+ ['temperature','number',0.3,'生成温度'],
+ ['use_hyde','bool',true,'启用 HyDE 改写'],
+];
+document.getElementById('f5-params').innerHTML=PARAM_DEF.map(p=>
+  `<div class="inline" style="justify-content:space-between;margin-bottom:8px">
+     <div style="font-size:12px"><b>${p[0]}</b><div class="note" style="margin:0">${p[3]} · 默认 ${p[2]}</div></div>
+     ${p[1]==='bool'?`<div class="toggle ${p[2]?'on':''}" id="fp-${p[0]}" onclick="this.classList.toggle('on')"></div>`:
+       `<input id="fp-${p[0]}" type="number" value="${p[2]}" style="width:90px">`}
+   </div>`).join('');
+function f5SaveParams(){
+  const vals={};PARAM_DEF.forEach(p=>vals[p[0]]=p[1]==='bool'?document.getElementById('fp-'+p[0]).classList.contains('on'):+document.getElementById('fp-'+p[0]).value);
+  document.getElementById('f5-param-note').textContent='✓ 已保存并持久化：'+JSON.stringify(vals);
+}
+function f5ResetParams(){
+  PARAM_DEF.forEach(p=>{const el=document.getElementById('fp-'+p[0]);if(p[1]==='bool')el.classList.toggle('on',!!p[2]);else el.value=p[2];});
+  document.getElementById('f5-param-note').textContent='↺ 已恢复默认值。';
+}
+function f5Switch(){
+  const m=document.getElementById('f5-model').value;
+  document.getElementById('f5-param-note').textContent='✓ 模型已热切换为：'+m+'（下游链已重建，无需重启）';
+}
+let f5rag=true;
+function f5ToggleRag(){
+  f5rag=!f5rag;document.getElementById('f5-rag').classList.toggle('on',f5rag);
+  document.getElementById('f5-rag-note').textContent='当前：'+(f5rag?'开启（基于证据生成）':'关闭（纯 LLM 模式，禁止虚构出处）');
+}
+function f5Compare(){
+  const q=document.getElementById('f5-q').value||'高血压的诊断标准是什么？';
+  document.getElementById('f5-compare').innerHTML=
+    `<div class="cite"><b>🤖 纯 LLM</b>（source_count: 0）<br>依据通用知识，高血压通常以收缩压≥140或舒张压≥90mmHg为参考标准，具体请咨询医师。<span class="note">（无引用，提示可能虚构出处）</span></div>
+     <div class="cite" style="border-color:var(--teal);background:#eafaf8;color:var(--teal2)"><b>📚 RAG</b>（source_count: 3）<br>依据指南原文：非同日三次测量收缩压≥140mmHg或舒张压≥90mmHg可诊断。[1] 高血压诊疗指南 · 第12页 · chunk-000030</div>
+     <div class="note">对比问题：「${q}」· 测试后自动恢复原 RAG 状态，两次均记入统计日志。</div>`;
+}
+const SESSIONS=[['s-a1b2c3','6','否'],['s-9f8e7d','3','是'],['s-4c5d6e','11','否']];
+function f5RenderSessions(){
+  document.getElementById('f5-sessions').innerHTML=SESSIONS.map(s=>
+    `<tr><td><span class="kbd">${s[0]}</span></td><td>${s[1]}</td><td>${s[2]==='是'?'<span class="tagx r">敏感</span>':'<span class="tagx g">否</span>'}</td><td><button class="btn sm ghost" onclick="f5Del('${s[0]}')">删除</button></td></tr>`).join('')||'<tr><td colspan="4" class="note">无会话</td></tr>';
+}
+function f5Del(id){const i=SESSIONS.findIndex(s=>s[0]===id);if(i>=0)SESSIONS.splice(i,1);f5RenderSessions();}
+function f5Purge(){for(let i=SESSIONS.length-1;i>=0;i--)if(SESSIONS[i][2]==='是')SESSIONS.splice(i,1);f5RenderSessions();}
+f5RenderSessions();
+</script>
+</body>
+</html>
